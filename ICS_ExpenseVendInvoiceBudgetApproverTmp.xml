@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxTable xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseVendInvoiceBudgetApproverTmp</Name>
+	<SourceCode>
+		<Declaration><![CDATA[
+public class ICS_ExpenseVendInvoiceBudgetApproverTmp extends common
+{
+}
+]]></Declaration>
+		<Methods>
+			<Method>
+				<Name>xds</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// XDS
+    /// </summary>
+    /// <returns>RefreshFrequency</returns>
+    public RefreshFrequency xds()
+    {
+        ICS_ExpenseVendInvoiceBudgetApproverTmp workerHierarchy;
+    
+        SetEnumerator setEnumerator = ICS_ExpenseVendInvoiceBudgetApproverTmp::getChildWorker(HcmWorker::userId2Worker(curUserId())).getEnumerator();
+
+        while (setEnumerator.moveNext())
+        {
+            workerHierarchy.MainContactWorker = setEnumerator.current();
+            workerHierarchy.insert();
+        }
+
+        return RefreshFrequency::PerSession;    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>getChildWorker</Name>
+				<Source><![CDATA[
+    private static Set getChildWorker(int64 _recId)
+    {
+        HcmPositionWorkerAssignment parentPositionWorkerAssignment;
+        HcmPositionWorkerAssignment childPositionWorkerAssignment;
+        HcmPositionHierarchy        positionHierarchy;
+        VendParameters              vendParameters = VendParameters::find();
+        Set                         set = new Set(Types::Int64);
+
+        set.add(_recId);
+
+        while select Worker from childPositionWorkerAssignment
+        join RecId from positionHierarchy
+          where positionHierarchy.Position              == childPositionWorkerAssignment.Position
+            && (positionHierarchy.PositionHierarchyType == vendParameters.ICS_PositionHierarchyType || !vendParameters.ICS_PositionHierarchyType)
+        join RecId from parentPositionWorkerAssignment
+          where parentPositionWorkerAssignment.Position == positionHierarchy.ParentPosition 
+            && parentPositionWorkerAssignment.Worker    == _recId
+        {
+            set = Set::union(set, ICS_ExpenseVendInvoiceBudgetApproverTmp::getChildWorker(childPositionWorkerAssignment.Worker));
+        }
+
+        return set;
+    }
+
+]]></Source>
+			</Method>
+		</Methods>
+	</SourceCode>
+	<Label>@ICS:ExpenseVendInvoiceBudgetApproverTmp</Label>
+	<SubscriberAccessLevel>
+		<Read>Allow</Read>
+	</SubscriberAccessLevel>
+	<TableType>TempDB</TableType>
+	<DeleteActions />
+	<FieldGroups>
+		<AxTableFieldGroup>
+			<Name>AutoReport</Name>
+			<Fields />
+		</AxTableFieldGroup>
+		<AxTableFieldGroup>
+			<Name>AutoLookup</Name>
+			<Fields />
+		</AxTableFieldGroup>
+		<AxTableFieldGroup>
+			<Name>AutoIdentification</Name>
+			<AutoPopulate>Yes</AutoPopulate>
+			<Fields />
+		</AxTableFieldGroup>
+		<AxTableFieldGroup>
+			<Name>AutoSummary</Name>
+			<Fields />
+		</AxTableFieldGroup>
+		<AxTableFieldGroup>
+			<Name>AutoBrowse</Name>
+			<Fields />
+		</AxTableFieldGroup>
+	</FieldGroups>
+	<Fields>
+		<AxTableField xmlns=""
+			i:type="AxTableFieldInt64">
+			<Name>MainContactWorker</Name>
+			<ExtendedDataType>smmBusRelAccResponsibleWorker</ExtendedDataType>
+			<HelpText>@ICS:InvoiceUserHelpTxt</HelpText>
+			<Label>@ICS:InvoiceUser</Label>
+		</AxTableField>
+	</Fields>
+	<FullTextIndexes />
+	<Indexes />
+	<Mappings />
+	<Relations />
+	<StateMachines />
+</AxTable>

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxClass xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseVendInvoiceLedgerJournalGeneratePostUIBuilder</Name>
+	<SourceCode>
+		<Declaration><![CDATA[
+/// <summary>
+/// Ledger journal for the expence invoice ui builder.
+/// </summary>
+public class ICS_ExpenseVendInvoiceLedgerJournalGeneratePostUIBuilder extends SysOperationAutomaticUIBuilder
+{
+    DialogField journalNameField;
+
+}
+]]></Declaration>
+		<Methods>
+			<Method>
+				<Name>postBuild</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Post build method implementation.
+    /// </summary>
+    public void postBuild()
+    {
+        super();
+
+        ICS_ExpenseVendInvoiceLedgerJournalGeneratePostContract contract = this.dataContractObject();
+
+        DialogField personNameField = this.bindInfo().getDialogField(contract, methodStr(ICS_ExpenseVendInvoiceLedgerJournalGeneratePostContract, parmPersonName));
+        personNameField.control().allowEdit(false);
+    }
+
+]]></Source>
+			</Method>
+		</Methods>
+	</SourceCode>
+</AxClass>

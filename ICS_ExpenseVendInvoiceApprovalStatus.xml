@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxEnum xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseVendInvoiceApprovalStatus</Name>
+	<Help>@ICS:ExpenseVendInvoiceApprovalHelpText</Help>
+	<Label>@ICS:ExpenseVendInvoiceApproval</Label>
+	<EnumValues>
+		<AxEnumValue>
+			<Name>NotApproved</Name>
+			<Label>@ICS:VendInvoiceApprovalNotApproved</Label>
+		</AxEnumValue>
+		<AxEnumValue>
+			<Name>Approved</Name>
+			<Label>@ICS:VendInvoiceApprovalApproved</Label>
+			<Value>1</Value>
+		</AxEnumValue>
+		<AxEnumValue>
+			<Name>Rejected</Name>
+			<Label>@ICS:VendInvoiceApprovalRejected</Label>
+			<Value>2</Value>
+		</AxEnumValue>
+	</EnumValues>
+</AxEnum>

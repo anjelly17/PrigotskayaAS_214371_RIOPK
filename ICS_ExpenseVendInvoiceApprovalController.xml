@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxClass xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseVendInvoiceApprovalController</Name>
+	<SourceCode>
+		<Declaration><![CDATA[
+/// <summary>
+/// Expense vendor invoice approval controller.
+/// </summary>
+public class ICS_ExpenseVendInvoiceApprovalController extends SysOperationServiceController
+{
+}
+]]></Declaration>
+		<Methods>
+			<Method>
+				<Name>main</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Entry point of controller class.
+    /// </summary>
+    /// <param name = "_args">An <c>Args</c> instance.</param>
+    public static void main(Args _args)
+    {
+        IdentifierName className;
+        IdentifierName methodName;
+        SysOperationExecutionMode executionMode;
+
+        try
+        {
+            [className, methodName, executionMode] = SysOperationServiceController::parseServiceInfo(_args);
+            ICS_ExpenseVendInvoiceApprovalController controller = new ICS_ExpenseVendInvoiceApprovalController(className, methodName, executionMode);
+            
+            controller.showBatchTab(false);
+            controller.initParmRecord(_args);
+            controller.parmArgs(_args);
+            controller.initPersonName();
+            
+            controller.parmLoadFromSysLastValue(false);
+            
+            controller.startOperation();
+        }
+        catch (Exception::Error)
+        {
+            exceptionTextFallThrough();
+        }
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>initParmRecord</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Initialize vendor invoice record id.
+    /// </summary>
+    /// <param name = "_args">An <c>Args</c> instance..</param>
+    public void initParmRecord(Args _args)
+    {
+        // Get marked records from calling form
+        if (_args 
+         && _args.dataset() == tableNum(ICS_ExpenseVendInvoice))
+        {
+            ICS_ExpenseVendInvoiceApprovalContract contract = this.getDataContractObject();
+
+            if (_args.caller() is FormRun)
+            {
+                ICS_ExpenseVendInvoice  expenseInvoice;
+                MultiSelectionHelper    multiselectionHelper = MultiSelectionHelper::createFromCaller(_args.caller());
+                Set                     recordSet = new Set(Types::Int64);
+        
+                expenseInvoice = multiselectionHelper.getFirst();
+
+                while (expenseInvoice)
+                {
+                    recordSet.add(expenseInvoice.RecId);
+            
+                    expenseInvoice = multiselectionHelper.getNext();
+                }
+
+                contract.parmRecordCon(recordSet.pack());
+
+                if (recordSet.elements() == 1)
+                {
+                    expenseInvoice = multiselectionHelper.getFirst();
+
+                    contract.parmVendInvoiceRecId(expenseInvoice.RecId);
+                }
+            }
+            else
+            {                
+                contract.parmVendInvoiceRecId(_args.record().RecId);
+            }
+        }
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>initPersonName</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Initialize contract person data.
+    /// </summary>
+    public void initPersonName()
+    {
+        PartyIProvider partyProvider = PartyProviderFactory::getPartyProvider();
+
+        if (partyProvider)
+        {
+            ICS_ExpenseVendInvoiceApprovalContract contract = this.getDataContractObject();
+            DirPerson dirPerson = partyProvider.findDirPersonByUserId(curUserId());
+
+            contract.parmPersonName(dirPerson.Name);
+            contract.parmDirPersonRecId(dirPerson.RecId);
+        }
+
+    }
+
+]]></Source>
+			</Method>
+		</Methods>
+	</SourceCode>
+</AxClass>

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxClass xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseVendInvoiceLineSplitController</Name>
+	<SourceCode>
+		<Declaration><![CDATA[
+/// <summary>
+///  Expense vendor invoice line split controller
+/// </summary>
+public class ICS_ExpenseVendInvoiceLineSplitController extends SysOperationServiceController
+{
+}
+]]></Declaration>
+		<Methods>
+			<Method>
+				<Name>main</Name>
+				<Source><![CDATA[
+    public static void main(Args args)
+    {
+        try
+        {
+            ICS_ExpenseVendInvoiceLineSplitController controller = new ICS_ExpenseVendInvoiceLineSplitController(classStr(ICS_ExpenseVendInvoiceLineSplitService),
+                                                                                                                 methodStr(ICS_ExpenseVendInvoiceLineSplitService, process),
+                                                                                                                 SysOperationExecutionMode::Synchronous);
+            
+            controller.parmLoadFromSysLastValue(false);
+            controller.showBatchTab(false);
+            controller.initParmRecord(args);
+
+            if (controller.prompt())
+            {
+                controller.runOperation();
+            }
+        }
+        catch (Exception::Error)
+        {
+            exceptionTextFallThrough();
+        }
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>initParmRecord</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Initialize parameter record.
+    /// </summary>
+    /// <param name = "_args"> Arguments.</param>
+    public void initParmRecord(Args _args)
+    {
+        ICS_ExpenseVendInvoiceLine                  expenseVendInvoiceLine;
+        ICS_ExpenseVendInvoiceLineSplitContract     contract;
+
+        if (_args.record()
+         && _args.dataset() == tableNum(ICS_ExpenseVendInvoiceLine))
+        {
+            expenseVendInvoiceLine = _args.record();
+        }
+
+        contract = this.getDataContractObject();
+        contract.parmVendInvoiceLineRecId(expenseVendInvoiceLine.RecId);
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>defaultCaption</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Get default caption.
+    /// </summary>
+    /// <returns> Default caption.</returns>
+    public ClassDescription defaultCaption()
+    {
+        return "@ICS:SplitLine";
+    }
+
+]]></Source>
+			</Method>
+		</Methods>
+	</SourceCode>
+</AxClass>

@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxClass xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseVendInvoiceSyncContract</Name>
+	<SourceCode>
+		<Declaration><![CDATA[
+/// <summary>
+/// Expense vendor invoice synchronize contract.
+/// </summary>
+[DataContract]
+public class ICS_ExpenseVendInvoiceSyncContract
+{
+    private str             packedQuery;
+    private container       recordCon;
+    private HcmWorkerRecId  hcmWorkerRecId;
+    private boolean         previewSync;    
+    private boolean         dimensionSync;
+    private boolean         contactWorkerSync;
+    private boolean         amountSync;
+
+}
+]]></Declaration>
+		<Methods>
+			<Method>
+				<Name>parmPackedQuery</Name>
+				<Source><![CDATA[
+    [DataMember, 
+     AifQueryType(identifierStr(_packedQuery), queryStr(ICS_ExpenseVendInvoiceSyncQuery))]
+    public str parmPackedQuery (str _packedQuery = packedQuery)
+    {
+        packedQuery = _packedQuery;
+
+        return packedQuery;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmRecordCon</Name>
+				<Source><![CDATA[
+    [DataMember, SysOperationControlVisibility(false)]
+    public container parmRecordCon(container _value = recordCon)
+    {
+        recordCon = _value;
+
+        return recordCon;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmHcmWorkerRecId</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Parm person record id.
+    /// </summary>
+    /// <param name = "_value">Person record id value.</param>
+    /// <returns>Person record id value.</returns>
+    [DataMember,
+     SysOperationLabel("@ICS:MainContactWorkerNewSync"),
+     SysOperationHelpText("@ICS:MainContactWorkerNewSyncHelpText")]
+    public HcmWorkerRecId parmHcmWorkerRecId(HcmWorkerRecId _value = hcmWorkerRecId)
+    {
+        hcmWorkerRecId = _value;
+
+        return hcmWorkerRecId;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmPreviewSync</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Parm Preview Synchronize.
+    /// </summary>
+    /// <param name = "_value">Preview Synchronize value.</param>
+    /// <returns>Preview Synchronize value.</returns>
+    [DataMember,
+     SysOperationLabel("@ICS:PreviewPDFSync"),
+     SysOperationHelpText("@ICS:PreviewPDFSyncHelpText")]
+    public boolean parmPreviewSync(boolean _value = previewSync)
+    {
+        previewSync = _value;
+
+        return previewSync;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmDimensionSync</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Parm Dimension Synchronize.
+    /// </summary>
+    /// <param name = "_value">Dimension Synchronize value.</param>
+    /// <returns>Dimension Synchronize value.</returns>
+    [DataMember,
+     SysOperationLabel("@ICS:DimensionSync"),
+     SysOperationHelpText("@ICS:DimensionSyncHelpText")]
+    public boolean parmDimensionSync(boolean _value = dimensionSync)
+    {
+        dimensionSync = _value;
+
+        return dimensionSync;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmContactWorkerSync</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Parm Main Contact Worker Synchronize.
+    /// </summary>
+    /// <param name = "_value">Main Contact Worker Synchronize value.</param>
+    /// <returns>Main Contact Worker Synchronize value.</returns>
+    [DataMember,
+     SysOperationLabel("@ICS:MainContactWorkerSync"),
+     SysOperationHelpText("@ICS:MainContactWorkerSyncHelpText")]
+    public boolean parmContactWorkerSync(boolean _value = contactWorkerSync)
+    {
+        contactWorkerSync = _value;
+
+        return contactWorkerSync;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmTaxAmountSync</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Parm Tax Amount Synchronize.
+    /// </summary>
+    /// <param name = "_value">Tax Amount Synchronize value.</param>
+    /// <returns>Tax Amount Synchronize value.</returns>
+    [DataMember,
+     SysOperationLabel("@ICS:TaxAmountSync"),
+     SysOperationHelpText("@ICS:TaxAmountSyncHelpText")]
+    public boolean parmTaxAmountSync(boolean _value = amountSync)
+    {
+        amountSync = _value;
+
+        return amountSync;
+    }
+
+]]></Source>
+			</Method>
+		</Methods>
+	</SourceCode>
+</AxClass>

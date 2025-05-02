@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxClass xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseVendInvoiceDimSyncContract</Name>
+	<SourceCode>
+		<Declaration><![CDATA[
+/// <summary>
+/// Expense vend invoice default dimension synchronize contract
+/// </summary>
+[
+    DataContract
+]
+public class ICS_ExpenseVendInvoiceDimSyncContract
+{
+    private str packedQuery;
+
+}
+]]></Declaration>
+		<Methods>
+			<Method>
+				<Name>parmPackedQuery</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Query with available expense invoices to update
+    /// </summary>
+    /// <param name = "_packedQuery">packed query</param>
+    /// <returns>packed query</returns>
+    [
+        DataMember
+        ,AifQueryType(identifierStr(_packedQuery), queryStr(ICS_ExpenseVendInvoiceDimSyncQuery))
+    ]
+    public str parmPackedQuery(str  _packedQuery = packedQuery)
+    {
+        packedQuery = _packedQuery;
+        return packedQuery;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>getQuery</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Gets query
+    /// </summary>
+    /// <returns>Query from the dialog</returns>
+    public Query getQuery()
+    {
+        return new Query(SysOperationHelper::base64Decode(packedQuery));
+    }
+
+]]></Source>
+			</Method>
+		</Methods>
+	</SourceCode>
+</AxClass>

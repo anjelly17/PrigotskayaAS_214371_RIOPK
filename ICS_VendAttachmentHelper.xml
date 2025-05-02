@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxClass xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_VendAttachmentHelper</Name>
+	<SourceCode>
+		<Declaration><![CDATA[
+/// <summary>
+/// The <c>ICS_VendFileAttachmentHelper</c> class is a helper class for <t>ICS_ExpenseVendInvoice</t> and
+/// <t>ICS_PKSTable</t> tables.
+/// </summary>
+public class ICS_VendAttachmentHelper
+{
+}
+]]></Declaration>
+		<Methods>
+			<Method>
+				<Name>attachPDFFile</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Create attachments.
+    /// </summary>
+    /// <param name = "_common">Common record instance.</param>
+    /// <param name = "_filePath">Attachment file path.</param>
+    /// <returns>True if attached; otherwise - false</returns>
+    public static boolean attachPDFFile(Common _common, FilePath _filePath)
+    {
+        DocuRef docuRef;
+        boolean ret = true;
+
+        try
+        {
+            ttsbegin;
+
+            delete_from docuRef
+                where  docuRef.RefCompanyId == _common.DataAreaId
+                    && docuRef.RefTableId   == _common.TableId
+                    && docuRef.RefRecId     == _common.RecId
+                    && docuRef.DefaultAttachment;
+
+            docuRef = DocumentManagement::attachFile(
+                _common.TableId,
+                _common.RecId,
+                _common.DataAreaId,
+                DocuType::typeFile(),
+                new System.IO.FileStream(_filePath, System.IO.FileMode::Open, System.IO.FileAccess::Read),
+                System.IO.Path::GetFileName(_filePath),
+                System.Web.MimeMapping::GetMimeMapping(_filePath),
+                System.IO.Path::GetFileNameWithoutExtension(_filePath));
+
+            docuRef.DefaultAttachment = NoYes::Yes;
+            docuRef.update();
+
+            ttscommit;
+        }
+        catch
+        {
+            ret = checkFailed("@ICS:FileAttachError");
+        }
+
+        return ret;
+    }
+
+]]></Source>
+			</Method>
+		</Methods>
+	</SourceCode>
+</AxClass>

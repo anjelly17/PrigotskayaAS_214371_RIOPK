@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxClass xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseVendInvoiceApprovalService</Name>
+	<SourceCode>
+		<Declaration><![CDATA[
+/// <summary>
+/// Expense vendor invoice approval service.
+/// </summary>
+public class ICS_ExpenseVendInvoiceApprovalService extends SysOperationServiceBase
+{
+}
+]]></Declaration>
+		<Methods>
+			<Method>
+				<Name>expenseApprove</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Expense approve of vendor invoice.
+    /// </summary>
+    /// <param name = "_contract">Contract class instance.</param>
+    public void expenseApprove(ICS_ExpenseVendInvoiceApprovalContract _contract)
+    {
+        setPrefix("@ICS:ExpenseApproval");
+
+        this.updateStatus(_contract, true);
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>budgetApprove</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Budget approve of vendor invoice.
+    /// </summary>
+    /// <param name = "_contract">Contract class instance.</param>
+    public void budgetApprove(ICS_ExpenseVendInvoiceApprovalContract _contract)
+    {
+        setPrefix("@ICS:BudgetApproval");
+
+        this.updateStatus(_contract, false);
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>updateStatus</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Updates approval status
+    /// </summary>
+    /// <param name = "_contract">Contract class instance</param>
+    /// <param name = "_isExpense">Expense or budget approval process flag</param>
+    protected void updateStatus(ICS_ExpenseVendInvoiceApprovalContract _contract, boolean _isExpense)
+    {
+        ICS_ExpenseVendInvoice                  expenseVendInvoice;
+        Set                                     recordSet;
+        System.ArgumentException                ex;                
+        utcdatetime                             approvalDateTime = DateTimeUtil::getSystemDateTime();
+        HcmWorkerRecId                          approvedBy       = HcmWorker::findByPerson(_contract.parmDirPersonRecId()).RecId;
+        ICS_ExpenseVendInvoiceApprovalStatus    approvalStatus   = _contract.parmReject() ? 
+            ICS_ExpenseVendInvoiceApprovalStatus::Rejected : ICS_ExpenseVendInvoiceApprovalStatus::Approved;
+
+        if (conLen(_contract.parmRecordCon())>0)
+        {
+            recordSet = Set::create(_contract.parmRecordCon());
+        }
+        else
+        {
+            recordSet = new Set(Types::Int64);
+            recordSet.add(_contract.parmVendInvoiceRecId());
+        }
+
+        SetEnumerator se = recordSet.getEnumerator();
+
+        while (se.moveNext())
+        {
+            expenseVendInvoice = ICS_ExpenseVendInvoice::findByRecId(se.current(), true);
+
+            if ((!_isExpense && expenseVendInvoice.ExpenseApproval != ICS_ExpenseVendInvoiceApprovalStatus::Approved)
+             || (_isExpense && expenseVendInvoice.BudgetApproval == ICS_ExpenseVendInvoiceApprovalStatus::Approved))
+            {
+                continue;
+            }
+
+            try
+            {
+                ttsbegin;
+
+                expenseVendInvoice.setApprovalStatus(approvedBy, approvalStatus, approvalDateTime, _isExpense);
+        
+                if (_contract.parmReject())
+                {
+                    expenseVendInvoice.RefusalReason    = _contract.parmRefusalReason();
+                    expenseVendInvoice.Notes            = _contract.parmNotes();
+                }
+
+                if (!expenseVendInvoice.validateWrite())
+                {
+                    throw error("@SYS21628");
+                }
+
+                expenseVendInvoice.update();
+
+                ttscommit;
+            }
+            catch(ex)
+            {
+                info(ex.Message);
+            }
+        }
+    }
+
+]]></Source>
+			</Method>
+		</Methods>
+	</SourceCode>
+</AxClass>

@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxClass xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseVendInvoiceLedgerJournalGeneratePostService</Name>
+	<SourceCode>
+		<Declaration><![CDATA[
+/// <summary>
+/// General ledger journal generator service.
+/// </summary>
+public class ICS_ExpenseVendInvoiceLedgerJournalGeneratePostService extends SysOperationServiceBase
+{
+    private const str defaultTaxItemGroup   = 'FIVA';
+    private const str ledgerTransDesc       = 'Ric. fattura fornitore %1 del %2 da %3';
+    private HcmWorkerRecId  approver;
+
+}
+]]></Declaration>
+		<Methods>
+			<Method>
+				<Name>journalPost</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Entry point of service class.
+    /// </summary>
+    /// <param name = "_contract">Contract class instance.</param>
+    public void journalPost(ICS_ExpenseVendInvoiceLedgerJournalGeneratePostContract _contract)
+    { 
+        ICS_ExpenseVendInvoice  expenseVendInvoice  = ICS_ExpenseVendInvoice::findByRecId(_contract.parmVendInvoiceRecId());
+        LedgerJournalTable      ledgerJournalTable  = LedgerJournalTable::findByRecId(expenseVendInvoice.LedgerJournalTableRecId);
+        LedgerJournalCheckPost  jourPost;
+
+        jourPost = LedgerJournalCheckPost::newLedgerJournalTable(ledgerJournalTable, NoYes::Yes);
+        jourPost.runOperation();
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>journalGenerate</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Entry point of service class.
+    /// </summary>
+    /// <param name = "_contract">Contract class instance.</param>
+    public void journalGenerate(ICS_ExpenseVendInvoiceLedgerJournalGeneratePostContract _contract)
+    {
+        ICS_ExpenseVendInvoice  expenseVendInvoice  = ICS_ExpenseVendInvoice::findByRecId(_contract.parmVendInvoiceRecId());
+        LedgerJournalName       ledgerJournalName   = LedgerJournalName::find(expenseVendInvoice.LedgerJournalNameId);
+        VendGroup               vendGroup;
+
+        if (!ledgerJournalName.RecId)
+        {
+            vendGroup           = VendGroup::find(VendTable::find(expenseVendInvoice.SuppAcc).VendGroup);
+            ledgerJournalName   = LedgerJournalName::find(vendGroup.ICS_ExpenseLedgerJournalNameId);
+        }        
+
+        approver = _contract.parmDirPersonRecId();
+        
+        ttsbegin;
+
+        LedgerJournalTable      ledgerJournalTable  = this.generateLedgerJournalTable(expenseVendInvoice, ledgerJournalName);
+
+        if (ledgerJournalTable.RecId)
+        {
+            this.createLedgerJournalTrans(expenseVendInvoice, ledgerJournalTable);
+
+            expenseVendInvoice.reread();
+
+            expenseVendInvoice.selectForUpdate(true);
+            expenseVendInvoice.LedgerJournalTableRecId      = ledgerJournalTable.RecId;
+            expenseVendInvoice.LedgerJournalCreatedDateTime = DateTimeUtil::utcNow();
+
+            if (!expenseVendInvoice.validateWrite())
+            {
+                throw error("@SYS21628");
+            }
+
+            expenseVendInvoice.update();
+    
+            Info(strFmt("@ICS:JournalGenerated", ledgerJournalTable.JournalNum));
+        }
+        else
+        {
+            throw error("@SYS21628");
+        }
+
+        ttscommit;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>generateLedgerJournalTable</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Generate ledger journal.
+    /// </summary>
+    /// <param name = "_expenseVendInvoice">Expense vendor invoice.</param>
+    /// <param name = "_ledgerJournalName">Ledger journal name.</param>
+    /// <returns>Ledger journal.</returns>
+    public LedgerJournalTable generateLedgerJournalTable(
+        ICS_ExpenseVendInvoice  _expenseVendInvoice,
+        LedgerJournalName       _ledgerJournalName)
+    {
+        LedgerJournalTable ledgerJournalTable;
+
+        ttsbegin;
+
+        ledgerJournalTable.clear();
+        ledgerJournalTable.initValue();
+        ledgerJournalTable.initFromLedgerJournalName(_ledgerJournalName.JournalName);
+        ledgerJournalTable.JournalNum               = JournalTableData::newTable(ledgerJournalTable).nextJournalId();
+        ledgerJournalTable.OffsetAccountType        = _expenseVendInvoice.OffsetAccountType; 
+        ledgerJournalTable.OffsetLedgerDimension    = _expenseVendInvoice.OffsetLedgerDimension;
+        ledgerJournalTable.CurrencyCode             = _expenseVendInvoice.displayCurrencyCode();
+
+        if (!ledgerJournalTable.validateWrite())
+        {
+            throw error("@SYS21628");
+        }
+
+        ledgerJournalTable.insert();
+
+        ttscommit;
+
+        return ledgerJournalTable;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>createLedgerJournalTrans</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Generate ledger journal transaction.
+    /// </summary>
+    /// <param name = "_expenseVendInvoice">Expense vendor invoice.</param>
+    /// <param name = "_ledgerJournalTable">Ledger journal.</param>
+    protected void createLedgerJournalTrans(ICS_ExpenseVendInvoice  _expenseVendInvoice,
+                                            LedgerJournalTable      _ledgerJournalTable)
+    {
+        ICS_ExpenseVendInvoiceLine  expenseVendInvoiceLine;
+
+        while select  expenseVendInvoiceLine
+          where expenseVendInvoiceLine.ExpenseVendInvoice == _expenseVendInvoice.RecId
+        {
+            this.generateLedgerJournalTrans(
+                _ledgerJournalTable,
+                _expenseVendInvoice,
+                expenseVendInvoiceLine
+                );
+        }
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>generateLedgerJournalTrans</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Generate ledger journal transaction.
+    /// </summary>
+    /// <param name = "_ledgerJournalTable">Ledger journal</param>
+    /// <param name = "_expenseVendInvoice">Expense invoice header</param>
+    /// <param name = "_expenseVendInvoiceLine">Expense invoice line</param>
+    /// <returns>Ledger journal transaction</returns>
+    public LedgerJournalTrans generateLedgerJournalTrans(
+        LedgerJournalTable          _ledgerJournalTable,
+        ICS_ExpenseVendInvoice      _expenseVendInvoice,
+        ICS_ExpenseVendInvoiceLine  _expenseVendInvoiceLine
+        )
+    {
+        LedgerJournalTrans  ledgerJournalTrans;
+        LedgerJournalEngine ledgerJournalEngine = LedgerJournalEngine::construct(_ledgerJournalTable.JournalType);
+
+        ledgerJournalEngine.newJournalActive(_ledgerJournalTable);
+
+        ttsbegin;
+
+        ledgerJournalTrans.clear();
+        ledgerJournalTrans.JournalNum       = _ledgerJournalTable.JournalNum;
+
+        ledgerJournalEngine.initValue(ledgerJournalTrans);
+
+        ledgerJournalTrans.transDate        = DateTimeUtil::getSystemDate(DateTimeUtil::getUserPreferredTimeZone());
+        ledgerJournalEngine.transDateModified(ledgerJournalTrans);
+
+        ledgerJournalTrans.company          = curExt();
+        
+        ledgerJournalTrans.AccountType      = LedgerJournalACType::Vend;
+        ledgerJournalTrans.LedgerDimension  = LedgerDynamicAccountHelper::getDynamicAccountFromAccountNumber(
+                _expenseVendInvoice.SuppAcc,
+                LedgerJournalACType::Vend
+                );
+        ledgerJournalEngine.accountModified(ledgerJournalTrans);
+
+        ledgerJournalTrans.amountCur2DebCred(-_expenseVendInvoiceLine.Amount);
+
+        ledgerJournalTrans.CurrencyCode     = _expenseVendInvoiceLine.CurrencyCode;
+        ledgerJournalEngine.currencyModified(ledgerJournalTrans);
+
+        ledgerJournalTrans.OffsetAccountType        = _expenseVendInvoice.OffsetAccountType;
+
+        ledgerJournalTrans.OffsetLedgerDimension = LedgerDimensionFacade::serviceCreateLedgerDimension(                
+                _ledgerJournalTable.OffsetLedgerDimension,
+                _expenseVendInvoiceLine.generateDimensionDefault()
+                );
+
+        ledgerJournalEngine.offsetAccountModified(ledgerJournalTrans);
+
+        ledgerJournalTrans.BarCodeId_DLX    = _expenseVendInvoice.FTP_Barcode;
+        ledgerJournalTrans.Invoice          = _expenseVendInvoice.InvoiceId;
+        ledgerJournalTrans.TaxItemGroup     = FRI_LedgerParameters::find().TaxItemGroup_VendInv2Ledger;
+        ledgerJournalTrans.Txt              = strFmt(ledgerTransDesc,
+            _expenseVendInvoice.InvoiceId,
+            _expenseVendInvoice.DocumentDate,
+            _expenseVendInvoice.SuppName);
+
+        ledgerJournalTrans.Approver         = HcmWorker::findByPerson(approver).RecId;
+        ledgerJournalTrans.Approved         = NoYes::Yes;
+        ledgerJournalTrans.DocumentDate     = _expenseVendInvoice.InvoiceDate;
+
+        if (!ledgerJournalTrans.validateWrite())
+        {
+            throw error("@SYS21628");
+        }
+
+        ledgerJournalTrans.insert();
+        ledgerJournalEngine.write(ledgerJournalTrans);
+
+        ttscommit;
+
+        return ledgerJournalTrans;
+    }
+
+]]></Source>
+			</Method>
+		</Methods>
+	</SourceCode>
+</AxClass>

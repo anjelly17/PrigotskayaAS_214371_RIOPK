@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxClass xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseVendInvoiceApprovalUIBuilder</Name>
+	<SourceCode>
+		<Declaration><![CDATA[
+/// <summary>
+/// Expense vendor invoice approval ui builder.
+/// </summary>
+public class ICS_ExpenseVendInvoiceApprovalUIBuilder extends SysOperationAutomaticUIBuilder
+{
+    DialogField     rejectField;
+    DialogField     reasonRefusalField;
+    DialogField     notesField;
+
+}
+]]></Declaration>
+		<Methods>
+			<Method>
+				<Name>postBuild</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Post build method implementation.
+    /// </summary>
+    public void postBuild()
+    {
+        ICS_ExpenseVendInvoiceApprovalContract  contract;
+        ICS_ExpenseVendInvoice                  expenseVendInvoice;
+
+        super();
+
+        contract            = this.dataContractObject();
+        expenseVendInvoice  = ICS_ExpenseVendInvoice::findByRecId(contract.parmVendInvoiceRecId());
+
+        this.bindInfo().getDialogField(contract, methodStr(ICS_ExpenseVendInvoiceApprovalContract, parmPersonName)).control().allowEdit(false);
+
+        rejectField         = this.bindInfo().getDialogField(contract, methodStr(ICS_ExpenseVendInvoiceApprovalContract, parmReject));
+        reasonRefusalField  = this.bindInfo().getDialogField(contract, methodStr(ICS_ExpenseVendInvoiceApprovalContract, parmRefusalReason));
+        notesField          = this.bindInfo().getDialogField(contract, methodStr(ICS_ExpenseVendInvoiceApprovalContract, parmNotes));
+
+        if (this.controller().parmArgs().menuItemName() == menuItemActionStr(ICS_ExpenseVendInvoiceExpenseApproval))
+        {
+            rejectField.value(expenseVendInvoice.ExpenseApproval == ICS_ExpenseVendInvoiceApprovalStatus::Approved);
+        }
+        else
+        {
+            rejectField.value(expenseVendInvoice.BudgetApproval == ICS_ExpenseVendInvoiceApprovalStatus::Approved);
+        }
+
+        reasonRefusalField.enabled(rejectField.value());
+        notesField.enabled(rejectField.value());
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>build</Name>
+				<Source><![CDATA[
+    public void build()
+    {
+        FormBuildStaticTextControl  instructionStaticTextCtrl;
+
+        instructionStaticTextCtrl = dialog.curFormBuildGroup().addControl(FormControlType::StaticText, identifierStr(instructionStaticText));
+        instructionStaticTextCtrl.text(this.getInfoText());
+
+        super();
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>getInfoText</Name>
+				<Source><![CDATA[
+    private str getInfoText()
+    {
+        str     infoText;       
+        boolean isExpense   = this.controller().parmArgs().menuItemName() == menuItemActionStr(ICS_ExpenseVendInvoiceExpenseApproval);
+        counter skipLineNum = 0;
+        counter procLineNum = 0;
+
+        [procLineNum, skipLineNum] = this.countGoodAndSkippedLines();
+
+        if (skipLineNum)
+        {
+            if (isExpense)
+            {
+                infoText = strFmt("@ICS:ExpenseApprovalWarning", skipLineNum);
+            }
+            else
+            {
+                infoText = strFmt("@ICS:BudgetApprovalWarning", skipLineNum);
+            }
+
+            if (infoText)
+            {
+                infoText += '   \n';
+            }
+        }
+
+        switch(procLineNum)
+        {
+            case 0:
+                infoText += nullValueBaseType(Types::String);
+                break;
+            case 1:
+                if (isExpense)
+                {
+                    infoText += "@ICS:ExpenseApprovalInfo";
+                }                
+                else
+                {
+                    infoText += "@ICS:BudgetApprovalInfo";
+                }
+                break;
+            default:
+                if (isExpense)
+                {
+                    infoText += strFmt("@ICS:ExpenseSeveralApprovalInfo", procLineNum);
+                }
+                else
+                {
+                    infoText += strFmt("@ICS:BudgetSeveralApprovalInfo", procLineNum);
+                }
+                break;
+        }
+
+        return infoText;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>countGoodAndSkippedLines</Name>
+				<Source><![CDATA[
+    private container countGoodAndSkippedLines()
+    {
+        ICS_ExpenseVendInvoice                  expenseVendInvoice;
+        ICS_ExpenseVendInvoiceApprovalContract  contract    = this.dataContractObject();
+        Set                                     recordSet   = Set::create(contract.parmRecordCon());
+        SetEnumerator                           se          = recordSet.getEnumerator();
+        boolean                                 isExpense   = this.controller().parmArgs().menuItemName() == menuItemActionStr(ICS_ExpenseVendInvoiceExpenseApproval);
+        counter                                 skipLineNum = 0;
+        counter                                 procLineNum = 0;
+        
+        while (se.moveNext())
+        {
+            expenseVendInvoice = ICS_ExpenseVendInvoice::findByRecId(se.current());
+
+            if ((!isExpense && expenseVendInvoice.ExpenseApproval != ICS_ExpenseVendInvoiceApprovalStatus::Approved)                
+                || (isExpense && expenseVendInvoice.BudgetApproval == ICS_ExpenseVendInvoiceApprovalStatus::Approved))
+            {
+                skipLineNum++;
+                continue;
+            }            
+
+            procLineNum++;
+        }
+
+        return [procLineNum, skipLineNum];
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>postRun</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Post run method implementation.
+    /// </summary>
+    public void postRun()
+    {
+        super();
+
+        rejectField.registerOverrideMethod(methodStr(FormCheckBoxControl, modified),
+                                           methodStr(ICS_ExpenseVendInvoiceApprovalUIBuilder, modifiedRejectRecord),
+                                           this);      
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>modifiedRejectRecord</Name>
+				<Source><![CDATA[
+    private boolean modifiedRejectRecord(FormCheckBoxControl _formControl)
+    {
+        boolean modified;
+
+        modified = _formControl.modified();
+
+        reasonRefusalField.enabled(rejectField.value());
+        notesField.enabled(rejectField.value());
+
+        return modified;
+    }
+
+]]></Source>
+			</Method>
+		</Methods>
+	</SourceCode>
+</AxClass>

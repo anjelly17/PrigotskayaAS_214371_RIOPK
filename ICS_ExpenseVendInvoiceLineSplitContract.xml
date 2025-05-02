@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxClass xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseVendInvoiceLineSplitContract</Name>
+	<SourceCode>
+		<Declaration><![CDATA[
+/// <summary>
+/// Expense vendor invoice line split contract
+/// </summary>
+[DataContract,
+SysOperationContractProcessingAttribute(classStr(ICS_ExpenseVendInvoiceLineSplitUIBuilder))]
+public class ICS_ExpenseVendInvoiceLineSplitContract implements SysOperationValidatable
+{
+    Amount          lineAmount;
+    DimensionValue  costCenter;
+    DimensionValue  businessUnit;
+    DimensionValue  department;
+    RecId           vendInvoiceLineRecId;
+
+
+}
+]]></Declaration>
+		<Methods>
+			<Method>
+				<Name>parmLineAmount</Name>
+				<Source><![CDATA[
+    [DataMemberAttribute,
+     SysOperationLabel("@ICS:LineAmount"),
+     SysOperationHelpText("@ICS:LineAmount"),
+     SysOperationDisplayOrder('1')]
+    public Amount parmLineAmount(Amount _value = lineAmount)
+    {
+        lineAmount = _value;
+
+        return lineAmount;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmCostCenter</Name>
+				<Source><![CDATA[
+    [DataMemberAttribute,
+     SysOperationLabel("@SYS13911"),
+     SysOperationHelpText("@SYS13911"),
+     SysOperationDisplayOrder('2')]
+    public DimensionValue parmCostCenter(DimensionValue _value = costCenter)
+    {
+        costCenter = _value;
+
+        return costCenter;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmBusinessUnit</Name>
+				<Source><![CDATA[
+    [DataMemberAttribute,
+     SysOperationLabel("@ICS:BusinessUnitLabel"),
+     SysOperationDisplayOrder('3')]
+    public DimensionValue parmBusinessUnit(DimensionValue _value = businessUnit)
+    {
+        businessUnit = _value;
+
+        return businessUnit;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmDepartment</Name>
+				<Source><![CDATA[
+    [DataMemberAttribute,
+     SysOperationLabel("@ICS:DepartmentLabel"),
+     SysOperationDisplayOrder('4')]
+    public DimensionValue parmDepartment(DimensionValue _value = department)
+    {
+        department = _value;
+
+        return department;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmVendInvoiceLineRecId</Name>
+				<Source><![CDATA[
+    public RecId parmVendInvoiceLineRecId(RecId _value = vendInvoiceLineRecId)
+    {
+        vendInvoiceLineRecId = _value;
+
+        return vendInvoiceLineRecId;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>validate</Name>
+				<Source><![CDATA[
+    public boolean validate()
+    {
+        boolean                     ret         = true;
+        ICS_ExpenseVendInvoiceLine  invoiceLine = ICS_ExpenseVendInvoiceLine::findByRecId(vendInvoiceLineRecId);
+
+
+        if (lineAmount <= 0)
+        {
+            ret = checkFailed("@ICS:LineAmountMustBePositive");
+        }
+        else if (lineAmount>= invoiceLine.Amount)
+        {
+            ret = checkFailed("@ICS:LineAmountMoreThanSelected");
+        }
+
+        if (ret)
+        {
+            if (costCenter == nullValueBaseType(Types::String))
+            {
+                ret = checkFailed("@ICS:CostCenterNotNull");
+            }
+            else if (costCenter == invoiceLine.CostCenter && businessUnit == invoiceLine.BusinessUnit && department == invoiceLine.Department)
+            {
+                ret = checkFailed("@ICS:SourceLineEqualDimError");
+            }
+        }
+
+        return ret;
+    }
+
+]]></Source>
+			</Method>
+		</Methods>
+	</SourceCode>
+</AxClass>

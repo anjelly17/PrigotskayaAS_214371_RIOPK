@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxService xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseVendInvoiceService</Name>
+	<Class>ICS_ExpenseVendInvoiceService</Class>
+	<ExternalName>ICS_ExpenseVendInvoiceService</ExternalName>
+	<ServiceOperations>
+		<AxServiceOperation>
+			<Name>create</Name>
+			<Method>create</Method>
+			<SubscriberAccessLevel>
+				<Read>Allow</Read>
+			</SubscriberAccessLevel>
+		</AxServiceOperation>
+		<AxServiceOperation>
+			<Name>update</Name>
+			<Method>update</Method>
+			<SubscriberAccessLevel>
+				<Read>Allow</Read>
+			</SubscriberAccessLevel>
+		</AxServiceOperation>
+	</ServiceOperations>
+</AxService>

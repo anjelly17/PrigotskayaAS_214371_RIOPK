@@ -1,0 +1,2943 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxForm xmlns:i="http://www.w3.org/2001/XMLSchema-instance" xmlns="Microsoft.Dynamics.AX.Metadata.V6">
+	<Name>ICS_ExpenseVendInvoice</Name>
+	<SourceCode>
+		<Methods xmlns="">
+			<Method>
+				<Name>classDeclaration</Name>
+				<Source><![CDATA[
+[Form]
+public class ICS_ExpenseVendInvoice extends FormRun implements SysSaveable
+{
+    private QueryBuildRange qbrExpenseApprovalStatus;
+    private QueryBuildRange qbrBudgetApprovalStatus;
+    private QueryBuildRange qbrJournalTablePosted;
+    private QueryBuildRange qbrFlowTypeStatus;
+    private QueryBuildRange qbrAmountStatus;
+
+    private ICS_ExpenseVendInvoiceApprovalStatus    expenseApprovalStatusValue;
+    private ICS_ExpenseVendInvoiceApprovalStatus    budgetApprovalStatusValue;
+    private ICS_LedgerJournalTableStatusFilter      ledgerJournalTableStatusValue;
+    private ICS_ExpenseFlowTypeStatusFilter         flowTypeStatusFilter;
+
+    #Define.CurrentVersion(1)
+    #LOCALMACRO.CurrentList
+            expenseApprovalStatusValue,
+            budgetApprovalStatusValue,
+            ledgerJournalTableStatusValue
+        #ENDMACRO
+
+}
+]]></Source>
+			</Method>
+			<Method>
+				<Name>init</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Initializes a new instance of the form.
+    /// </summary>
+    public void init()
+    {
+        super();
+
+        Overview_OffsetLedgerDimension.parmIsDefaultAccount(true);
+        Overview_OffsetLedgerDimension.parmValidateBlockedForManualEntry(true);
+        InvoiceGroup_OffsetLedgerDimension.parmIsDefaultAccount(true);
+        InvoiceGroup_OffsetLedgerDimension.parmValidateBlockedForManualEntry(true);
+
+        element.initQueryRanges();
+
+        ExpenseFlowTypeStatus.selection(ICS_ExpenseFlowTypeStatusFilter::NotRemoved);
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>lastValueDesignName</Name>
+				<Source><![CDATA[
+    public identifiername lastValueDesignName()
+    {
+        return strMin();
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>lastValueDataAreaId</Name>
+				<Source><![CDATA[
+    public dataAreaId lastValueDataAreaId()
+    {
+        return curExt();
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>lastValueUserId</Name>
+				<Source><![CDATA[
+    public UserId lastValueUserId()
+    {
+        return curuserid();
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>lastValueType</Name>
+				<Source><![CDATA[
+    public UtilElementType lastValueType()
+    {
+        return UtilElementType::Form;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>lastValueElementName</Name>
+				<Source><![CDATA[
+    public IdentifierName lastValueElementName()
+    {
+        return this.name();
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>pack</Name>
+				<Source><![CDATA[
+    [Hookable(false)]
+    public container pack()
+    {
+        return [#CurrentVersion, #CurrentList];
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>unpack</Name>
+				<Source><![CDATA[
+    [Hookable(false)]
+    public boolean unpack(container packedClass)
+    {
+        Integer version = conPeek(packedClass, 1);
+
+        switch (version)
+        {
+            case #CurrentVersion:
+                [version, #CurrentList] = packedClass;
+                break;
+            default :
+                return false;
+        }
+
+        return true;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>initParmDefault</Name>
+				<Source><![CDATA[
+    public void initParmDefault()
+    {
+        ExpenseApprovalStatus.selection(expenseApprovalStatusValue);
+        BudgetApprovalStatus.selection(budgetApprovalStatusValue);
+        LedgerJournalTableStatus.selection(ledgerJournalTableStatusValue);
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>initQueryRanges</Name>
+				<Source><![CDATA[
+    protected void initQueryRanges()
+    {
+        QueryBuildDataSource    qbdsExpenseVendInvoice  = ICS_ExpenseVendInvoice_DS.queryBuildDataSource();
+        QueryBuildDataSource    qbdsLedgerJournalTable  = LedgerJournalTable_DS.queryBuildDataSource();
+        QueryBuildDataSource    qbdsVendInvoiceView     = ICS_ExpenseVendInvoiceAmountView_ds.queryBuildDataSource();
+
+        qbrExpenseApprovalStatus    = SysQuery::findOrCreateRange(qbdsExpenseVendInvoice, fieldNum(ICS_ExpenseVendInvoice, ExpenseApproval));
+        qbrBudgetApprovalStatus     = SysQuery::findOrCreateRange(qbdsExpenseVendInvoice, fieldNum(ICS_ExpenseVendInvoice, BudgetApproval));
+        qbrFlowTypeStatus           = SysQuery::findOrCreateRange(qbdsExpenseVendInvoice, fieldNum(ICS_ExpenseVendInvoice, FlowType));
+        qbrJournalTablePosted       = SysQuery::findOrCreateRange(qbdsLedgerJournalTable, fieldNum(LedgerJournalTable, Posted));  
+        qbrAmountStatus             = SysQuery::findOrCreateRange(qbdsVendInvoiceView, fieldNum(ICS_ExpenseVendInvoiceAmountView, AmountOrig));
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>joinLedgerTableDS</Name>
+				<Source><![CDATA[
+    protected void joinLedgerTableDS()
+    {
+        QueryBuildDataSource    qbdsLedgerJournalTable  = LedgerJournalTable_DS.queryBuildDataSource();
+
+        switch (LedgerJournalTableStatus.selection())
+        {
+            case ICS_LedgerJournalTableStatusFilter::All:
+                qbdsLedgerJournalTable.joinMode(JoinMode::OuterJoin);
+                qbrJournalTablePosted.value(SysQuery::valueUnlimited());
+                break;
+
+            case ICS_LedgerJournalTableStatusFilter::NotCreated:
+                qbdsLedgerJournalTable.joinMode(JoinMode::NoExistsJoin);
+                qbrJournalTablePosted.value(SysQuery::valueUnlimited());
+                break;
+
+            case ICS_LedgerJournalTableStatusFilter::Created:
+                qbdsLedgerJournalTable.joinMode(JoinMode::InnerJoin);
+                qbrJournalTablePosted.value(SysQuery::value(NoYes::No));
+                break;
+
+            case ICS_LedgerJournalTableStatusFilter::Posted:
+                qbdsLedgerJournalTable.joinMode(JoinMode::InnerJoin);
+                qbrJournalTablePosted.value(SysQuery::value(NoYes::Yes));
+                break;
+        }
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>clearOrUpdateRanges</Name>
+				<Source><![CDATA[
+    protected void clearOrUpdateRanges()
+    {
+        if (ExpenseApprovalStatus.selection() == ICS_ExpenseVendInvoiceApprovalStatusFilter::All)
+        {
+            qbrExpenseApprovalStatus.value(SysQuery::valueUnlimited());
+        }
+        else
+        {
+            qbrExpenseApprovalStatus.value(ExpenseApprovalStatus.valueStr());
+        }
+            
+        if (BudgetApprovalStatus.selection() == ICS_ExpenseVendInvoiceApprovalStatusFilter::All)
+        {
+            qbrBudgetApprovalStatus.value(SysQuery::valueUnlimited());
+        }
+        else
+        {
+            qbrBudgetApprovalStatus.value(BudgetApprovalStatus.valueStr());
+        }
+
+        switch (ExpenseFlowTypeStatus.selection())
+        {
+            case ICS_ExpenseFlowTypeStatusFilter::All:
+                qbrFlowTypeStatus.value(SysQuery::valueUnlimited());
+                break;
+            case ICS_ExpenseFlowTypeStatusFilter::NotRemoved:
+                qbrFlowTypeStatus.value(SysQuery::valueNot(ICS_ExpenseFlowType::Removed));
+                break;
+            case ICS_ExpenseFlowTypeStatusFilter::Removed:
+                qbrFlowTypeStatus.value(queryValue(ICS_ExpenseFlowType::Removed));
+                break;
+            default:
+                qbrFlowTypeStatus.value(ExpenseFlowTypeStatus.valueStr());
+                break;
+        }
+
+        switch (ExpenseAmountStatus.selection())
+        {
+            case ICS_ExpenseAmountFilter::All:
+                qbrAmountStatus.value(SysQuery::valueUnlimited());
+                break;
+            case ICS_ExpenseAmountFilter::NotCalculable:
+                qbrAmountStatus.value(strFmt('((%1 == 0) || (%2 == 0))', 
+                                            fieldStr(ICS_ExpenseVendInvoiceAmountView, AmountAI),
+                                            fieldStr(ICS_ExpenseVendInvoiceAmountView, AmountOrig)));
+                break;
+            case ICS_ExpenseAmountFilter::Difference:
+                qbrAmountStatus.value(strFmt('((%1 != 0) && (%2 != 0) && (%1 != %2))',
+                                            fieldStr(ICS_ExpenseVendInvoiceAmountView, AmountAI),
+                                            fieldStr(ICS_ExpenseVendInvoiceAmountView, AmountOrig)));
+                break;
+            case ICS_ExpenseAmountFilter::NoDifference:
+                qbrAmountStatus.value(strFmt('((%1 != 0) && (%2 != 0) && (%1 == %2))',
+                                            fieldStr(ICS_ExpenseVendInvoiceAmountView, AmountAI),
+                                            fieldStr(ICS_ExpenseVendInvoiceAmountView, AmountOrig)));
+                break;
+            default:
+                break;
+        }
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>enableHeaderButtons</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Enables or disables the header buttons.
+    /// </summary>
+    public void enableHeaderButtons()
+    {
+        boolean journalIsCreated    = ICS_ExpenseVendInvoice.LedgerJournalTableRecId != 0;
+        boolean isDeleted           = ICS_ExpenseVendInvoice.FlowType == ICS_ExpenseFlowType::Removed;
+
+        LedgerJournalGenerate.enabled(!journalIsCreated && !isDeleted);
+        LedgerJournalPost.enabled(journalIsCreated && !LedgerJournalTable::findByRecId(ICS_ExpenseVendInvoice.LedgerJournalTableRecId).Posted);
+        ShowInvoice.enabled(ICS_ExpenseVendInvoice.PathPreview != nullValueBaseType(Types::String));
+        ExpenseApproval.enabled(!isDeleted);
+        BudgetApproval.enabled(!isDeleted);
+        ExpenseSync.enabled(!journalIsCreated);
+    }
+
+]]></Source>
+			</Method>
+		</Methods>
+		<DataSources xmlns="">
+			<DataSource>
+				<Name>ICS_ExpenseVendInvoice</Name>
+				<Methods>
+					<Method>
+						<Name>active</Name>
+						<Source><![CDATA[
+        /// <summary>
+        /// Active 
+        /// </summary>
+        /// <returns>Int</returns>
+        public int active()
+        {
+            int ret;
+            
+            ret = super();
+          
+            allowEditFieldsOnFormDS_W(ICS_ExpenseVendInvoice_ds, ICS_ExpenseVendInvoice.LedgerJournalTableRecId == 0);
+           
+            ICS_ExpenseVendInvoice_ds.object(fieldNum(ICS_ExpenseVendInvoice, AIPreview)).allowEdit(true);
+            ICS_ExpenseVendInvoice_ds.object(fieldNum(ICS_ExpenseVendInvoice, DirPathAI)).allowEdit(true);
+
+            ICS_ExpenseVendInvoice_ds.object(fieldNum(ICS_ExpenseVendInvoice, MainContactWorker)).allowEdit(!ICS_ExpenseVendInvoiceLine::existSplittedLine(ICS_ExpenseVendInvoice.RecId)
+                                                                                                          && ICS_ExpenseVendInvoice.LedgerJournalTableRecId == 0);
+
+            element.enableHeaderButtons();
+
+            return ret;
+        }
+
+]]></Source>
+					</Method>
+					<Method>
+						<Name>executeQuery</Name>
+						<Source><![CDATA[
+        /// <summary>
+        /// Execute query
+        /// </summary>
+        public void executeQuery()
+        { 
+            int position;
+
+            position = ICS_ExpenseVendInvoice_ds.getPosition();
+            
+            element.clearOrUPdateRanges();
+
+            element.joinLedgerTableDS();
+
+            super();
+
+            ICS_ExpenseVendInvoice_ds.setPosition(position);
+        }
+
+]]></Source>
+					</Method>
+					<Method>
+						<Name>displayOption</Name>
+						<Source><![CDATA[
+        /// <summary>
+        /// Change color.
+        /// </summary>
+        /// <param name = "_record"></param>
+        /// <param name = "_options"></param>
+        public void displayOption(Common _record, FormRowDisplayOption _options)
+        {
+            ICS_ExpenseVendInvoiceAmountView    vendInvoiceAmountView;
+            ICS_ExpenseVendInvoice              vendInvoice = _record;       
+
+            select firstonly vendInvoiceAmountView
+                where vendInvoiceAmountView.ExpenseVendInvoice == vendInvoice.RecId;
+
+            if (vendInvoiceAmountView.AmountAI      != 0
+             && vendInvoiceAmountView.AmountOrig    != 0)
+            {
+                if (vendInvoiceAmountView.AmountAI == vendInvoiceAmountView.AmountOrig)
+                {
+                    _options.backColor(WinAPI::RGB2int(144,238,144));
+                }
+                else
+                {
+                    _options.backColor(WinAPI::RGB2int(255,254,122));
+                }
+            }
+
+            super(_record, _options);
+        }
+
+]]></Source>
+					</Method>
+				</Methods>
+				<Fields />
+			</DataSource>
+			<DataSource>
+				<Name>ICS_ExpenseVendInvoiceLine</Name>
+				<Methods>
+					<Method>
+						<Name>active</Name>
+						<Source><![CDATA[
+        /// <summary>
+        /// Active
+        /// </summary>
+        /// <returns> Int</returns>
+        public int active()
+        {
+            int ret;
+            boolean journalTableExist = ICS_ExpenseVendInvoice.LedgerJournalTableRecId != 0;
+    
+            ret = super();
+
+            ICS_ExpenseVendInvoiceLine_ds.object(fieldNum(ICS_ExpenseVendInvoiceLine, CurrencyCode)).allowEdit(ICS_ExpenseVendInvoiceLine.ParentLineRecId == 0);
+            ICS_ExpenseVendInvoiceLine_ds.object(fieldNum(ICS_ExpenseVendInvoiceLine, AmountOrig)).allowEdit(ICS_ExpenseVendInvoiceLine.ParentLineRecId == 0);
+            ICS_ExpenseVendInvoiceLineSplit.enabled(!journalTableExist);
+            boolean allowDelete = !journalTableExist && !ICS_ExpenseVendInvoiceLine.displayIsParentLine();
+            this.allowDelete(allowDelete);
+            this.allowEdit(!journalTableExist);
+
+            return ret;
+        }
+
+]]></Source>
+					</Method>
+				</Methods>
+				<Fields>
+					<Field>
+						<DataField>Amount</DataField>
+						<Methods>
+							<Method>
+								<Name>modified</Name>
+								<Source><![CDATA[
+            /// <summary>
+            /// Modified
+            /// </summary>
+            public void modified()
+            {
+                super();
+                ICS_ExpenseVendInvoiceLine_ds.research(true);
+                ICS_ExpenseVendInvoice_ds.reread();
+            }
+
+]]></Source>
+							</Method>
+						</Methods>
+					</Field>
+					<Field>
+						<DataField>CostCenter</DataField>
+						<Methods>
+							<Method>
+								<Name>lookup</Name>
+								<Source><![CDATA[
+            /// <summary>
+            /// Lookup
+            /// </summary>
+            /// <param name = "_formControl">Form control</param>
+            /// <param name = "_filterStr">Filter string</param>
+            public void lookup(FormControl _formControl, str _filterStr)
+            {
+                ICS_ExpenseVendInvoiceLine::lookupCostCenter(_formControl);
+            }
+
+]]></Source>
+							</Method>
+						</Methods>
+					</Field>
+					<Field>
+						<DataField>CurrencyCode</DataField>
+						<Methods>
+							<Method>
+								<Name>modified</Name>
+								<Source><![CDATA[
+            /// <summary>
+            /// Modified
+            /// </summary>
+            public void modified()
+            {
+                super();
+                ICS_ExpenseVendInvoiceLine_ds.research(true);
+                ICS_ExpenseVendInvoice_ds.reread();
+            }
+
+]]></Source>
+							</Method>
+						</Methods>
+					</Field>
+				</Fields>
+			</DataSource>
+			<DataSource>
+				<Name>LedgerJournalTable</Name>
+				<Methods>
+					<Method>
+						<Name>delete</Name>
+						<Source><![CDATA[
+        /// <summary>
+        /// Delete
+        /// </summary>
+        public void delete()
+        {
+        }
+
+]]></Source>
+					</Method>
+					<Method>
+						<Name>write</Name>
+						<Source><![CDATA[
+        /// <summary>
+        /// Write
+        /// </summary>
+        public void write()
+        {
+        }
+
+]]></Source>
+					</Method>
+					<Method>
+						<Name>validateWrite</Name>
+						<Source><![CDATA[
+        /// <summary>
+        /// Validate write
+        /// </summary>
+        /// <returns> Boolean</returns>
+        public boolean validateWrite()
+        {        
+            return true;
+        }
+
+]]></Source>
+					</Method>
+				</Methods>
+				<Fields />
+			</DataSource>
+		</DataSources>
+		<DataControls xmlns="">
+			<Control>
+				<Name>LedgerJournalGenerate</Name>
+				<Type>MenuFunctionButton</Type>
+				<Methods>
+					<Method>
+						<Name>clicked</Name>
+						<Source><![CDATA[
+        /// <summary>
+        /// Clicked
+        /// </summary>
+        public void clicked()
+        {
+            if (ICS_ExpenseVendInvoice.BudgetApproval   == ICS_ExpenseVendInvoiceApprovalStatus::Rejected
+             || ICS_ExpenseVendInvoice.ExpenseApproval  == ICS_ExpenseVendInvoiceApprovalStatus::Rejected)
+            {
+                throw error("@ICS:GeneralJournalGenerationInvalid");
+            }
+
+            super();
+        }
+
+]]></Source>
+					</Method>
+				</Methods>
+			</Control>
+			<Control>
+				<Name>ShowInvoice</Name>
+				<Type>Button</Type>
+				<Methods>
+					<Method>
+						<Name>clicked</Name>
+						<Source><![CDATA[
+        /// <summary>
+        /// Clicked
+        /// </summary>
+        public void clicked()
+        {
+            super();
+            new Browser().Navigate(ICS_ExpenseVendInvoice.PathPreview);
+        }
+
+]]></Source>
+					</Method>
+				</Methods>
+			</Control>
+			<Control>
+				<Name>ShowInterpretationInvoice</Name>
+				<Type>Button</Type>
+				<Methods>
+					<Method>
+						<Name>clicked</Name>
+						<Source><![CDATA[
+        /// <summary>
+        /// Clicked
+        /// </summary>
+        public void clicked()
+        {
+            super();
+            new Browser().Navigate(ICS_ExpenseVendInvoice.AIPreview);
+        }
+
+]]></Source>
+					</Method>
+				</Methods>
+			</Control>
+			<Control>
+				<Name>ShowInterpretationApp</Name>
+				<Type>Button</Type>
+				<Methods>
+					<Method>
+						<Name>clicked</Name>
+						<Source><![CDATA[
+        /// <summary>
+        /// Clicked
+        /// </summary>
+        public void clicked()
+        {
+            super();
+            new Browser().Navigate(ICS_ExpenseVendInvoice.DirPathAI);
+        }
+
+]]></Source>
+					</Method>
+				</Methods>
+			</Control>
+			<Control>
+				<Name>ExpenseApprovalStatus</Name>
+				<Type>ComboBox</Type>
+				<Methods>
+					<Method>
+						<Name>modified</Name>
+						<Source><![CDATA[
+        /// <summary>
+        /// Modified
+        /// </summary>
+        /// <returns> Boolean</returns>
+        public boolean modified()
+        {
+            boolean ret;
+    
+            ret = super();
+    
+            expenseApprovalStatusValue = ExpenseApprovalStatus.selection();
+
+            ICS_ExpenseVendInvoice_ds.executeQuery();
+
+            return ret;
+        }
+
+]]></Source>
+					</Method>
+				</Methods>
+			</Control>
+			<Control>
+				<Name>BudgetApprovalStatus</Name>
+				<Type>ComboBox</Type>
+				<Methods>
+					<Method>
+						<Name>modified</Name>
+						<Source><![CDATA[
+        /// <summary>
+        /// Modified
+        /// </summary>
+        /// <returns> Boolean.</returns>
+        public boolean modified()
+        {
+            boolean ret;
+    
+            ret = super();
+
+            budgetApprovalStatusValue = BudgetApprovalStatus.selection();
+
+            ICS_ExpenseVendInvoice_ds.executeQuery();
+    
+            return ret;
+        }
+
+]]></Source>
+					</Method>
+				</Methods>
+			</Control>
+			<Control>
+				<Name>LedgerJournalTableStatus</Name>
+				<Type>ComboBox</Type>
+				<Methods>
+					<Method>
+						<Name>modified</Name>
+						<Source><![CDATA[
+        /// <summary>
+        /// Modified
+        /// </summary>
+        /// <returns> Boolean</returns>
+        public boolean modified()
+        {
+            boolean ret;
+    
+            ret = super();
+    
+            ledgerJournalTableStatusValue = LedgerJournalTableStatus.selection();
+
+            ICS_ExpenseVendInvoice_ds.executeQuery();
+
+            return ret;
+        }
+
+]]></Source>
+					</Method>
+				</Methods>
+			</Control>
+			<Control>
+				<Name>ExpenseFlowTypeStatus</Name>
+				<Type>ComboBox</Type>
+				<Methods>
+					<Method>
+						<Name>modified</Name>
+						<Source><![CDATA[
+        /// <summary>
+        /// Modified
+        /// </summary>
+        /// <returns> Boolean</returns>
+        public boolean modified()
+        {
+            boolean ret;
+    
+            ret = super();
+    
+            ICS_ExpenseVendInvoice_ds.executeQuery();
+
+            return ret;
+        }
+
+]]></Source>
+					</Method>
+				</Methods>
+			</Control>
+			<Control>
+				<Name>ExpenseAmountStatus</Name>
+				<Type>ComboBox</Type>
+				<Methods>
+					<Method>
+						<Name>modified</Name>
+						<Source><![CDATA[
+        /// <summary>
+        /// Modified
+        /// </summary>
+        /// <returns></returns>
+        public boolean modified()
+        {
+            boolean ret;
+    
+            ret = super();
+    
+            ICS_ExpenseVendInvoice_ds.executeQuery();
+
+            return ret;
+        }
+
+]]></Source>
+					</Method>
+				</Methods>
+			</Control>
+		</DataControls>
+		<Members xmlns="" />
+	</SourceCode>
+	<DataSources>
+		<AxFormDataSource xmlns="">
+			<Name>ICS_ExpenseVendInvoice</Name>
+			<Table>ICS_ExpenseVendInvoice</Table>
+			<Fields>
+				<AxFormDataSourceField>
+					<DataField>AIPreview</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>BudgetApproval</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>BudgetApprovedBy</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>BudgetApprovedDateTime</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>CreatedBy</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>CreatedDateTime</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>DataAreaId</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>DirPathAI</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>DocumentDate</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>ExpenseApproval</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>ExpenseApprovedBy</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>ExpenseApprovedDateTime</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>FiscalCode</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>FlowType</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>FTP_Barcode</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>FT_approval_AccName</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>InvoiceDate</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>InvoiceId</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>InvoiceSDI</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>LedgerJournalCreatedDateTime</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>LedgerJournalNameId</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>LedgerJournalTableRecId</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>MainContactWorker</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>ModifiedBy</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>ModifiedDateTime</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>Notes</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>OffsetAccountType</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>OffsetLedgerDimension</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>Partition</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>PathPDF</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>PathPreview</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>PathXML</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>ReceivingSociety</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>RecId</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>RefusalReason</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>Source</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>SuppAcc</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>SuppName</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>SyncStatus</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>TableId</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>VATNum</DataField>
+				</AxFormDataSourceField>
+			</Fields>
+			<ReferencedDataSources />
+			<AllowCreate>No</AllowCreate>
+			<AllowDelete>No</AllowDelete>
+			<Index>SortIdx</Index>
+			<InsertIfEmpty>No</InsertIfEmpty>
+			<DataSourceLinks />
+			<DerivedDataSources />
+		</AxFormDataSource>
+		<AxFormDataSource xmlns="">
+			<Name>ICS_ExpenseVendInvoiceLine</Name>
+			<Table>ICS_ExpenseVendInvoiceLine</Table>
+			<Fields>
+				<AxFormDataSourceField>
+					<DataField>Amount</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>AmountAI</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>AmountOrig</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>BusinessUnit</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>CostCenter</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>CreatedBy</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>CreatedDateTime</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>CurrencyCode</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>DataAreaId</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>Department</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>ExpenseVendInvoice</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>LineNum</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>ModifiedBy</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>ModifiedDateTime</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>ParentLineRecId</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>Partition</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>RecId</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>TableId</DataField>
+				</AxFormDataSourceField>
+			</Fields>
+			<ReferencedDataSources />
+			<JoinSource>ICS_ExpenseVendInvoice</JoinSource>
+			<Index>LineIdx</Index>
+			<DataSourceLinks />
+			<DerivedDataSources />
+		</AxFormDataSource>
+		<AxFormDataSource xmlns="">
+			<Name>LedgerJournalTable</Name>
+			<Table>LedgerJournalTable</Table>
+			<Fields>
+				<AxFormDataSourceField>
+					<DataField>Approver</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>AssetTransferType_LT</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>BankAccountId</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>BankRemittanceType</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>BankTransSummarizationCriteria</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>BankTransSummarizationEnabled</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>CreatedBy</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>CurrencyCode</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>CurrentOperationsTax</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>CustVendNegInstProtestProcess</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>DataAreaId</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>DefaultDimension</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>DelayTaxCalculation</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>DetailSummaryPosting</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>DocumentNum</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>EndBalance</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>EUROTriangulation</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>ExchRate</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>ExchrateSecondary</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>FinTag</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>FixedExchRate</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>FixedOffsetAccount</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>FRI_BarCode</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>FRI_Id_FatturaAcquisto</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>FRI_Id_FatturaContoLavoro</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>FRI_Id_FatturaVendita</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>GroupBlockId</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>IntegrationKey</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>InUseBy</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>IsAdjustmentJournal</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>IsLedgerDimensionNameUpdated</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>JournalBalance</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>JournalName</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>JournalNum</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>JournalTotalCredit</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>JournalTotalCreditReportingCurrency</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>JournalTotalDebit</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>JournalTotalDebitReportingCurrency</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>journalTotalOffsetBalance</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>JournalType</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>LedgerJournalInclTax</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>LinesLimitBeforeDistribution</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>Log</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>ModifiedBy</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>Name</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>NumberSequenceTable</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>NumOfLines</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>OffsetAccountType</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>OffsetLedgerDimension</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>OriginalCompany</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>OriginalJournalNum</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>OverrideSalesTax</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>PackedExtensions</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>ParentJournalNum</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>Partition</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>PaymentsGenerated_IT</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>Posted</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>PostedDateTime</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>ProtestSettledBill</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>RecId</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>RejectedBy</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>RemoveLineAfterPosting</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>ReportedAsReadyBy</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>ReportingCurrencyExchRate</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>ReportingCurrencyExchRateSecondary</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>ReportingCurrencyFixedExchRate</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>RetailStatementId</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>ReverseDate</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>ReverseEntry</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>SessionId</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>SessionLoginDateTime</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>SimulationPosted</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>SimulationPosted_IT</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>StatoStampa</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>SystemBlocked</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>SystemBlockedReason</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>TableId</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>TaxObligationCompany</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>UserBlockId</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>VoucherAllocatedAtPosting</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>WorkflowApprovalStatus</DataField>
+				</AxFormDataSourceField>
+			</Fields>
+			<ReferencedDataSources />
+			<JoinSource>ICS_ExpenseVendInvoice</JoinSource>
+			<LinkType>OuterJoin</LinkType>
+			<AllowCheck>No</AllowCheck>
+			<AllowCreate>No</AllowCreate>
+			<AllowDelete>No</AllowDelete>
+			<AllowEdit>No</AllowEdit>
+			<DataSourceLinks />
+			<DerivedDataSources />
+		</AxFormDataSource>
+		<AxFormDataSource xmlns="">
+			<Name>ICS_ExpenseVendInvoiceAmountView</Name>
+			<Table>ICS_ExpenseVendInvoiceAmountView</Table>
+			<Fields>
+				<AxFormDataSourceField>
+					<DataField>Amount</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>AmountAI</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>AmountOrig</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>DataAreaId</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>ExpenseVendInvoice</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>Partition</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>RecId</DataField>
+				</AxFormDataSourceField>
+				<AxFormDataSourceField>
+					<DataField>TableId</DataField>
+				</AxFormDataSourceField>
+			</Fields>
+			<ReferencedDataSources />
+			<JoinSource>ICS_ExpenseVendInvoice</JoinSource>
+			<LinkType>InnerJoin</LinkType>
+			<InsertIfEmpty>No</InsertIfEmpty>
+			<DataSourceLinks />
+			<DerivedDataSources />
+		</AxFormDataSource>
+	</DataSources>
+	<Design>
+		<Caption xmlns="">@ICS:ExpenseVendInvoiceCaption</Caption>
+		<Pattern xmlns="">Custom</Pattern>
+		<ShowDeleteButton xmlns="">No</ShowDeleteButton>
+		<ShowNewButton xmlns="">No</ShowNewButton>
+		<Style xmlns="">DetailsFormTransaction</Style>
+		<Controls xmlns="">
+			<AxFormControl xmlns=""
+				i:type="AxFormActionPaneControl">
+				<Name>ApplicationBar</Name>
+				<Type>ActionPane</Type>
+				<FormControlExtension
+					i:nil="true" />
+				<Controls>
+					<AxFormControl xmlns=""
+						i:type="AxFormActionPaneTabControl">
+						<Name>ManagePaneTab</Name>
+						<Type>ActionPaneTab</Type>
+						<FormControlExtension
+							i:nil="true" />
+						<Controls>
+							<AxFormControl xmlns=""
+								i:type="AxFormButtonGroupControl">
+								<Name>InvoiceBtnGrp</Name>
+								<Type>ButtonGroup</Type>
+								<FormControlExtension
+									i:nil="true" />
+								<Controls>
+									<AxFormControl xmlns=""
+										i:type="AxFormMenuFunctionButtonControl">
+										<Name>ExpenseApproval</Name>
+										<AutoDeclaration>Yes</AutoDeclaration>
+										<Type>MenuFunctionButton</Type>
+										<FormControlExtension
+											i:nil="true" />
+										<AutoRefreshData>Yes</AutoRefreshData>
+										<MenuItemName>ICS_ExpenseVendInvoiceExpenseApproval</MenuItemName>
+										<MenuItemType>Action</MenuItemType>
+										<MultiSelect>Yes</MultiSelect>
+									</AxFormControl>
+									<AxFormControl xmlns=""
+										i:type="AxFormMenuFunctionButtonControl">
+										<Name>BudgetApproval</Name>
+										<AutoDeclaration>Yes</AutoDeclaration>
+										<Type>MenuFunctionButton</Type>
+										<FormControlExtension
+											i:nil="true" />
+										<AutoRefreshData>Yes</AutoRefreshData>
+										<MenuItemName>ICS_ExpenseVendInvoiceBudgetApproval</MenuItemName>
+										<MenuItemType>Action</MenuItemType>
+										<MultiSelect>Yes</MultiSelect>
+									</AxFormControl>
+									<AxFormControl xmlns=""
+										i:type="AxFormMenuFunctionButtonControl">
+										<Name>InvoiceRemoval</Name>
+										<Type>MenuFunctionButton</Type>
+										<FormControlExtension
+											i:nil="true" />
+										<AutoRefreshData>Yes</AutoRefreshData>
+										<MenuItemName>ICS_ExpenseVendInvoiceRemoval</MenuItemName>
+										<MenuItemType>Action</MenuItemType>
+										<MultiSelect>Yes</MultiSelect>
+									</AxFormControl>
+									<AxFormControl xmlns=""
+										i:type="AxFormMenuFunctionButtonControl">
+										<Name>InvoiceRemovalByQuery</Name>
+										<Type>MenuFunctionButton</Type>
+										<FormControlExtension
+											i:nil="true" />
+										<MenuItemName>ICS_ExpenseVendInvoiceRemovalByQuery</MenuItemName>
+										<MenuItemType>Action</MenuItemType>
+									</AxFormControl>
+								</Controls>
+								<Caption>@SYS14204</Caption>
+							</AxFormControl>
+							<AxFormControl xmlns=""
+								i:type="AxFormButtonGroupControl">
+								<Name>JournalBtnGrp</Name>
+								<Type>ButtonGroup</Type>
+								<FormControlExtension
+									i:nil="true" />
+								<Controls>
+									<AxFormControl xmlns=""
+										i:type="AxFormMenuFunctionButtonControl">
+										<Name>LedgerJournalGenerate</Name>
+										<AutoDeclaration>Yes</AutoDeclaration>
+										<Type>MenuFunctionButton</Type>
+										<FormControlExtension
+											i:nil="true" />
+										<AutoRefreshData>Yes</AutoRefreshData>
+										<MenuItemName>ICS_ExpenseVendInvoiceLedgerJournalGenerate</MenuItemName>
+										<MenuItemType>Action</MenuItemType>
+									</AxFormControl>
+									<AxFormControl xmlns=""
+										i:type="AxFormMenuFunctionButtonControl">
+										<Name>LedgerJournalPost</Name>
+										<AutoDeclaration>Yes</AutoDeclaration>
+										<Type>MenuFunctionButton</Type>
+										<FormControlExtension
+											i:nil="true" />
+										<AutoRefreshData>Yes</AutoRefreshData>
+										<MenuItemName>ICS_ExpenseVendInvoiceLedgerJournalPost</MenuItemName>
+										<MenuItemType>Action</MenuItemType>
+									</AxFormControl>
+								</Controls>
+								<Caption>@SYS10018</Caption>
+							</AxFormControl>
+							<AxFormControl xmlns=""
+								i:type="AxFormButtonGroupControl">
+								<Name>InfoBtnGrp</Name>
+								<Type>ButtonGroup</Type>
+								<FormControlExtension
+									i:nil="true" />
+								<Controls>
+									<AxFormControl xmlns=""
+										i:type="AxFormButtonControl">
+										<Name>ShowInvoice</Name>
+										<AutoDeclaration>Yes</AutoDeclaration>
+										<Type>Button</Type>
+										<FormControlExtension
+											i:nil="true" />
+										<Text>@ICS:ShowInvoice</Text>
+									</AxFormControl>
+									<AxFormControl xmlns=""
+										i:type="AxFormMenuFunctionButtonControl">
+										<Name>ExpenseSync</Name>
+										<AutoDeclaration>Yes</AutoDeclaration>
+										<Type>MenuFunctionButton</Type>
+										<FormControlExtension
+											i:nil="true" />
+										<AutoRefreshData>Yes</AutoRefreshData>
+										<DataSource>ICS_ExpenseVendInvoice</DataSource>
+										<MenuItemName>ICS_ExpenseVendInvoiceSync</MenuItemName>
+										<MenuItemType>Action</MenuItemType>
+										<MultiSelect>Yes</MultiSelect>
+									</AxFormControl>
+									<AxFormControl xmlns=""
+										i:type="AxFormButtonControl">
+										<Name>ShowInterpretationInvoice</Name>
+										<AutoDeclaration>Yes</AutoDeclaration>
+										<Type>Button</Type>
+										<FormControlExtension
+											i:nil="true" />
+										<Text>@ICS:ShowInterpretationInvoice</Text>
+									</AxFormControl>
+									<AxFormControl xmlns=""
+										i:type="AxFormButtonControl">
+										<Name>ShowInterpretationApp</Name>
+										<AutoDeclaration>Yes</AutoDeclaration>
+										<Type>Button</Type>
+										<FormControlExtension
+											i:nil="true" />
+										<Text>@ICS:ShowInterpretationApp</Text>
+									</AxFormControl>
+								</Controls>
+								<ArrangeMethod>HorizontalWrap</ArrangeMethod>
+								<Columns>2</Columns>
+								<Caption>@SYS59372</Caption>
+							</AxFormControl>
+						</Controls>
+						<Caption>@SYS115306</Caption>
+					</AxFormControl>
+				</Controls>
+			</AxFormControl>
+			<AxFormControl xmlns=""
+				i:type="AxFormTabControl">
+				<Name>MainTab</Name>
+				<Type>Tab</Type>
+				<FormControlExtension
+					i:nil="true" />
+				<Controls>
+					<AxFormControl xmlns=""
+						i:type="AxFormTabPageControl">
+						<Name>TabPageDetails</Name>
+						<Type>TabPage</Type>
+						<FormControlExtension
+							i:nil="true" />
+						<Controls>
+							<AxFormControl xmlns=""
+								i:type="AxFormGroupControl">
+								<Name>NavigationList</Name>
+								<AutoDeclaration>Yes</AutoDeclaration>
+								<HeightMode>SizeToAvailable</HeightMode>
+								<Type>Group</Type>
+								<Visible>No</Visible>
+								<FormControlExtension
+									i:nil="true" />
+								<Controls>
+									<AxFormControl>
+										<Name>NavigationListQuickFilter</Name>
+										<WidthMode>SizeToAvailable</WidthMode>
+										<FormControlExtension>
+											<Name>QuickFilterControl</Name>
+											<ExtensionComponents />
+											<ExtensionProperties>
+												<AxFormControlExtensionProperty>
+													<Name>targetControlName</Name>
+													<Type>String</Type>
+													<Value>NavigationListGrid</Value>
+												</AxFormControlExtensionProperty>
+												<AxFormControlExtensionProperty>
+													<Name>defaultColumnName</Name>
+													<Type>String</Type>
+													<Value>ICS_ExpenseVendInvoice_InvoiceId</Value>
+												</AxFormControlExtensionProperty>
+												<AxFormControlExtensionProperty>
+													<Name>placeholderText</Name>
+													<Type>String</Type>
+												</AxFormControlExtensionProperty>
+											</ExtensionProperties>
+										</FormControlExtension>
+									</AxFormControl>
+									<AxFormControl xmlns=""
+										i:type="AxFormGridControl">
+										<Name>NavigationListGrid</Name>
+										<AllowEdit>No</AllowEdit>
+										<Type>Grid</Type>
+										<WidthMode>SizeToContent</WidthMode>
+										<FormControlExtension
+											i:nil="true" />
+										<Controls>
+											<AxFormControl xmlns=""
+												i:type="AxFormStringControl">
+												<Name>ICS_ExpenseVendInvoice_InvoiceId</Name>
+												<Type>String</Type>
+												<FormControlExtension
+													i:nil="true" />
+												<DataField>InvoiceId</DataField>
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+											</AxFormControl>
+											<AxFormControl xmlns=""
+												i:type="AxFormDateControl">
+												<Name>ICS_ExpenseVendInvoice_InvoiceDate</Name>
+												<Type>Date</Type>
+												<FormControlExtension
+													i:nil="true" />
+												<DataField>InvoiceDate</DataField>
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+											</AxFormControl>
+										</Controls>
+										<DataSource>ICS_ExpenseVendInvoice</DataSource>
+										<MultiSelect>No</MultiSelect>
+										<ShowRowLabels>No</ShowRowLabels>
+										<Style>List</Style>
+									</AxFormControl>
+								</Controls>
+								<FrameType>None</FrameType>
+							</AxFormControl>
+							<AxFormControl xmlns=""
+								i:type="AxFormGroupControl">
+								<Name>HeaderInfo</Name>
+								<ElementPosition>1073741822</ElementPosition>
+								<FilterExpression>%1</FilterExpression>
+								<Type>Group</Type>
+								<VerticalSpacing>-1</VerticalSpacing>
+								<Visible>No</Visible>
+								<WidthMode>SizeToAvailable</WidthMode>
+								<FormControlExtension
+									i:nil="true" />
+								<Controls>
+									<AxFormControl xmlns=""
+										i:type="AxFormStringControl">
+										<Name>HeaderTitle</Name>
+										<AlignControl>No</AlignControl>
+										<AutoDeclaration>Yes</AutoDeclaration>
+										<ElementPosition>1073741822</ElementPosition>
+										<FilterExpression>%1</FilterExpression>
+										<Skip>Yes</Skip>
+										<Type>String</Type>
+										<VerticalSpacing>-1</VerticalSpacing>
+										<WidthMode>SizeToAvailable</WidthMode>
+										<FormControlExtension
+											i:nil="true" />
+										<Border>None</Border>
+										<ColorScheme>WindowsPalette</ColorScheme>
+										<DataSource>ICS_ExpenseVendInvoice</DataSource>
+										<FontSize>11</FontSize>
+										<ForegroundColor>DynTitleGreen</ForegroundColor>
+										<ShowLabel>No</ShowLabel>
+										<Style>TitleField</Style>
+										<Text>@ICS:ExpenseVendInvoice</Text>
+										<ViewEditMode>View</ViewEditMode>
+									</AxFormControl>
+								</Controls>
+								<ArrangeMethod>HorizontalLeft</ArrangeMethod>
+								<FrameType>None</FrameType>
+								<Style>DetailTitleContainer</Style>
+							</AxFormControl>
+							<AxFormControl xmlns=""
+								i:type="AxFormGroupControl">
+								<Name>ParentGroupControl</Name>
+								<HeightMode>SizeToAvailable</HeightMode>
+								<Type>Group</Type>
+								<WidthMode>SizeToAvailable</WidthMode>
+								<FormControlExtension
+									i:nil="true" />
+								<Controls>
+									<AxFormControl xmlns=""
+										i:type="AxFormGroupControl">
+										<Name>InvoiceGroupControl</Name>
+										<HeightMode>SizeToAvailable</HeightMode>
+										<Type>Group</Type>
+										<WidthMode>SizeToAvailable</WidthMode>
+										<FormControlExtension
+											i:nil="true" />
+										<Controls>
+											<AxFormControl xmlns=""
+												i:type="AxFormTabControl">
+												<Name>HeaderAndLinePanels</Name>
+												<AlignControl>No</AlignControl>
+												<ElementPosition>1610612733</ElementPosition>
+												<FilterExpression>%1</FilterExpression>
+												<Type>Tab</Type>
+												<VerticalSpacing>-1</VerticalSpacing>
+												<FormControlExtension
+													i:nil="true" />
+												<Controls>
+													<AxFormControl xmlns=""
+														i:type="AxFormTabPageControl">
+														<Name>LineView</Name>
+														<AutoDeclaration>Yes</AutoDeclaration>
+														<ElementPosition>1073741822</ElementPosition>
+														<FilterExpression>%1</FilterExpression>
+														<Height>0</Height>
+														<HeightMode>SizeToAvailable</HeightMode>
+														<Type>TabPage</Type>
+														<VerticalSpacing>-1</VerticalSpacing>
+														<Width>0</Width>
+														<WidthMode>SizeToAvailable</WidthMode>
+														<FormControlExtension
+															i:nil="true" />
+														<Controls>
+															<AxFormControl xmlns=""
+																i:type="AxFormTabControl">
+																<Name>LineViewTab</Name>
+																<AlignControl>No</AlignControl>
+																<AutoDeclaration>Yes</AutoDeclaration>
+																<ElementPosition>1431655764</ElementPosition>
+																<FilterExpression>%1</FilterExpression>
+																<Type>Tab</Type>
+																<VerticalSpacing>-1</VerticalSpacing>
+																<FormControlExtension
+																	i:nil="true" />
+																<Controls>
+																	<AxFormControl xmlns=""
+																		i:type="AxFormTabPageControl">
+																		<Name>LineViewHeader</Name>
+																		<AutoDeclaration>Yes</AutoDeclaration>
+																		<ElementPosition>930576246</ElementPosition>
+																		<FilterExpression>%1</FilterExpression>
+																		<HeightMode>Auto</HeightMode>
+																		<Type>TabPage</Type>
+																		<VerticalSpacing>-1</VerticalSpacing>
+																		<WidthMode>SizeToAvailable</WidthMode>
+																		<FormControlExtension
+																			i:nil="true" />
+																		<Controls>
+																			<AxFormControl xmlns=""
+																				i:type="AxFormGroupControl">
+																				<Name>InvoiceGroup</Name>
+																				<Type>Group</Type>
+																				<FormControlExtension
+																					i:nil="true" />
+																				<Controls>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormStringControl">
+																						<Name>InvoiceGroup_InvoiceId</Name>
+																						<Type>String</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>InvoiceId</DataField>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormDateControl">
+																						<Name>InvoiceGroup_InvoiceDate</Name>
+																						<Type>Date</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>InvoiceDate</DataField>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormDateControl">
+																						<Name>InvoiceGroup_DocumentDate</Name>
+																						<Type>Date</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>DocumentDate</DataField>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormStringControl">
+																						<Name>InvoiceGroup_displayCurrencyCode</Name>
+																						<Type>String</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataMethod>displayCurrencyCode</DataMethod>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormSegmentedEntryControl">
+																						<Name>InvoiceGroup_OffsetLedgerDimension</Name>
+																						<AutoDeclaration>Yes</AutoDeclaration>
+																						<Type>SegmentedEntry</Type>
+																						<FormControlExtension>
+																							<Name>SegmentedEntryControl</Name>
+																							<ExtensionComponents />
+																							<ExtensionProperties>
+																								<AxFormControlExtensionProperty>
+																									<Name>parmControllerClassName</Name>
+																									<Type>String</Type>
+																									<Value>DimensionDynamicAccountController</Value>
+																								</AxFormControlExtensionProperty>
+																								<AxFormControlExtensionProperty>
+																									<Name>parmAccountTypeEnumName</Name>
+																									<Type>String</Type>
+																									<Value>OffsetAccountType</Value>
+																								</AxFormControlExtensionProperty>
+																								<AxFormControlExtensionProperty>
+																									<Name>parmIsDefaultAccount</Name>
+																									<Type>Enum</Type>
+																									<TypeName>boolean</TypeName>
+																									<Value>False</Value>
+																								</AxFormControlExtensionProperty>
+																								<AxFormControlExtensionProperty>
+																									<Name>parmValidateBlockedForManualEntry</Name>
+																									<Type>Enum</Type>
+																									<TypeName>NoYes</TypeName>
+																								</AxFormControlExtensionProperty>
+																								<AxFormControlExtensionProperty>
+																									<Name>parmLockMainAccountSegment</Name>
+																									<Type>Enum</Type>
+																									<TypeName>NoYes</TypeName>
+																								</AxFormControlExtensionProperty>
+																								<AxFormControlExtensionProperty>
+																									<Name>parmPostingType</Name>
+																									<Type>Enum</Type>
+																									<TypeName>LedgerPostingType</TypeName>
+																								</AxFormControlExtensionProperty>
+																								<AxFormControlExtensionProperty>
+																									<Name>parmIncludeTotalAccounts</Name>
+																									<Type>Enum</Type>
+																									<TypeName>NoYes</TypeName>
+																								</AxFormControlExtensionProperty>
+																								<AxFormControlExtensionProperty>
+																									<Name>parmIncludeFinancialAccounts</Name>
+																									<Type>Enum</Type>
+																									<TypeName>NoYes</TypeName>
+																								</AxFormControlExtensionProperty>
+																							</ExtensionProperties>
+																						</FormControlExtension>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																						<ReferenceField>OffsetLedgerDimension</ReferenceField>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormStringControl">
+																						<Name>InvoiceGroup_VATNum</Name>
+																						<Type>String</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>VATNum</DataField>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormStringControl">
+																						<Name>InvoiceGroup_FiscalCode</Name>
+																						<Type>String</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>FiscalCode</DataField>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormStringControl">
+																						<Name>InvoiceGroup_FTP_Barcode</Name>
+																						<Type>String</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>FTP_Barcode</DataField>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormReferenceGroupControl">
+																						<Name>InvoiceGroup_MainContactWorker</Name>
+																						<Type>ReferenceGroup</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<Controls />
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																						<ReferenceField>MainContactWorker</ReferenceField>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormCheckBoxControl">
+																						<Name>InvoiceGroup_InvoiceSDI</Name>
+																						<Type>CheckBox</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>InvoiceSDI</DataField>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormComboBoxControl">
+																						<Name>InvoiceGroup_FlowType</Name>
+																						<Type>ComboBox</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>FlowType</DataField>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																						<Items />
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormReferenceGroupControl">
+																						<Name>InvoiceGroup_FT_approval_AccName</Name>
+																						<Type>ReferenceGroup</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<Controls />
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																						<ReferenceField>FT_approval_AccName</ReferenceField>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormComboBoxControl">
+																						<Name>InvoiceGroup_Source</Name>
+																						<AllowEdit>No</AllowEdit>
+																						<Type>ComboBox</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>Source</DataField>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																						<Items />
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormComboBoxControl">
+																						<Name>InvoiceGroup_SyncStatus</Name>
+																						<AllowEdit>No</AllowEdit>
+																						<Type>ComboBox</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>SyncStatus</DataField>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																						<Items />
+																					</AxFormControl>
+																				</Controls>
+																				<DataGroup>Invoice</DataGroup>
+																				<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																			</AxFormControl>
+																			<AxFormControl xmlns=""
+																				i:type="AxFormGroupControl">
+																				<Name>VendDetailsGroup</Name>
+																				<Type>Group</Type>
+																				<FormControlExtension
+																					i:nil="true" />
+																				<Controls>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormStringControl">
+																						<Name>VendDetailsGroup_SuppAcc</Name>
+																						<Type>String</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>SuppAcc</DataField>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormStringControl">
+																						<Name>VendDetailsGroup_SuppName</Name>
+																						<Type>String</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>SuppName</DataField>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																					</AxFormControl>
+																				</Controls>
+																				<DataGroup>VendDetails</DataGroup>
+																				<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																			</AxFormControl>
+																			<AxFormControl xmlns=""
+																				i:type="AxFormGroupControl">
+																				<Name>DocumentPathsGroup</Name>
+																				<Type>Group</Type>
+																				<FormControlExtension
+																					i:nil="true" />
+																				<Controls>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormStringControl">
+																						<Name>DocumentPathsGroup_PathXML</Name>
+																						<Type>String</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>PathXML</DataField>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormStringControl">
+																						<Name>DocumentPathsGroup_PathPDF</Name>
+																						<Type>String</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>PathPDF</DataField>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormStringControl">
+																						<Name>DocumentPathsGroup_PathPreview</Name>
+																						<Type>String</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>PathPreview</DataField>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormStringControl">
+																						<Name>DocumentPathsGroup_AIPreview</Name>
+																						<AutoDeclaration>Yes</AutoDeclaration>
+																						<Type>String</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>AIPreview</DataField>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormStringControl">
+																						<Name>DocumentPathsGroup_DirPathAI</Name>
+																						<AutoDeclaration>Yes</AutoDeclaration>
+																						<Type>String</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>DirPathAI</DataField>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormStringControl">
+																						<Name>DocumentPathsGroup_ReceivingSociety</Name>
+																						<Type>String</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>ReceivingSociety</DataField>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																					</AxFormControl>
+																				</Controls>
+																				<DataGroup>DocumentPaths</DataGroup>
+																				<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																			</AxFormControl>
+																			<AxFormControl xmlns=""
+																				i:type="AxFormGroupControl">
+																				<Name>ApprovalDetailsGroup</Name>
+																				<Type>Group</Type>
+																				<FormControlExtension
+																					i:nil="true" />
+																				<Controls>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormComboBoxControl">
+																						<Name>ApprovalDetailsGroup_ExpenseApproval</Name>
+																						<Type>ComboBox</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>ExpenseApproval</DataField>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																						<Items />
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormReferenceGroupControl">
+																						<Name>ApprovalDetailsGroup_ExpenseApprovedBy</Name>
+																						<Type>ReferenceGroup</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<Controls />
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																						<ReferenceField>ExpenseApprovedBy</ReferenceField>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormDateTimeControl">
+																						<Name>ApprovalDetailsGroup_ExpenseApprovedDateTime</Name>
+																						<Type>DateTime</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>ExpenseApprovedDateTime</DataField>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormComboBoxControl">
+																						<Name>ApprovalDetailsGroup_BudgetApproval</Name>
+																						<Type>ComboBox</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>BudgetApproval</DataField>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																						<Items />
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormReferenceGroupControl">
+																						<Name>ApprovalDetailsGroup_BudgetApprovedBy</Name>
+																						<Type>ReferenceGroup</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<Controls />
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																						<ReferenceField>BudgetApprovedBy</ReferenceField>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormDateTimeControl">
+																						<Name>ApprovalDetailsGroup_BudgetApprovedDateTime</Name>
+																						<Type>DateTime</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>BudgetApprovedDateTime</DataField>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormComboBoxControl">
+																						<Name>ApprovalDetailsGroup_RefusalReason</Name>
+																						<Type>ComboBox</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>RefusalReason</DataField>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																						<Items />
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormStringControl">
+																						<Name>ApprovalDetailsGroup_Notes</Name>
+																						<Type>String</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>Notes</DataField>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																					</AxFormControl>
+																				</Controls>
+																				<DataGroup>ApprovalDetails</DataGroup>
+																				<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																			</AxFormControl>
+																			<AxFormControl xmlns=""
+																				i:type="AxFormGroupControl">
+																				<Name>JournalDetailsGroup</Name>
+																				<Type>Group</Type>
+																				<FormControlExtension
+																					i:nil="true" />
+																				<Controls>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormStringControl">
+																						<Name>JournalDetailsGroup_JournalNum</Name>
+																						<Type>String</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>JournalNum</DataField>
+																						<DataSource>LedgerJournalTable</DataSource>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormCheckBoxControl">
+																						<Name>JournalDetailsGroup_Created</Name>
+																						<Enabled>No</Enabled>
+																						<Type>CheckBox</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataMethod>ledgerJournalTableCreated</DataMethod>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormStringControl">
+																						<Name>JournalDetailsGroup_CreatedBy</Name>
+																						<Type>String</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>CreatedBy</DataField>
+																						<DataSource>LedgerJournalTable</DataSource>
+																						<Label>@ICS:GeneralJournalCreatedBy</Label>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormDateTimeControl">
+																						<Name>JournalDetailsGroup_LedgerJournalCreatedDateTime</Name>
+																						<Type>DateTime</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>LedgerJournalCreatedDateTime</DataField>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormCheckBoxControl">
+																						<Name>JournalDetailsGroup_Posted</Name>
+																						<Type>CheckBox</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>Posted</DataField>
+																						<DataSource>LedgerJournalTable</DataSource>
+																						<Label>@ICS:LedgerJOurPosted</Label>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormDateTimeControl">
+																						<Name>JournalDetailsGroup_PostedDateTime</Name>
+																						<Type>DateTime</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>PostedDateTime</DataField>
+																						<DataSource>LedgerJournalTable</DataSource>
+																						<Label>@ICS:GeneralJournalPostingDateTime</Label>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormStringControl">
+																						<Name>ExpenseVendInvoice_LedgerJournalNameId</Name>
+																						<Type>String</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>LedgerJournalNameId</DataField>
+																						<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																					</AxFormControl>
+																				</Controls>
+																				<Caption>@ICS:GeneralJournalDetailsGroup</Caption>
+																			</AxFormControl>
+																		</Controls>
+																		<ColumnsMode>Fill</ColumnsMode>
+																		<Caption>@ICS:ExpenseVendInvoiceHeader</Caption>
+																		<FastTabExpanded>No</FastTabExpanded>
+																		<Scrollbars>Auto</Scrollbars>
+																	</AxFormControl>
+																	<AxFormControl xmlns=""
+																		i:type="AxFormTabPageControl">
+																		<Name>LineViewLines</Name>
+																		<ElementPosition>1395864369</ElementPosition>
+																		<FilterExpression>%1</FilterExpression>
+																		<HeightMode>SizeToAvailable</HeightMode>
+																		<Type>TabPage</Type>
+																		<VerticalSpacing>-1</VerticalSpacing>
+																		<Width>0</Width>
+																		<WidthMode>SizeToAvailable</WidthMode>
+																		<FormControlExtension
+																			i:nil="true" />
+																		<Controls>
+																			<AxFormControl xmlns=""
+																				i:type="AxFormActionPaneControl">
+																				<Name>LineActionBar</Name>
+																				<Type>ActionPane</Type>
+																				<FormControlExtension
+																					i:nil="true" />
+																				<Controls>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormButtonGroupControl">
+																						<Name>LineButtonGroup</Name>
+																						<Type>ButtonGroup</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<Controls>
+																							<AxFormControl xmlns=""
+																								i:type="AxFormCommandButtonControl">
+																								<Name>Remove</Name>
+																								<Type>CommandButton</Type>
+																								<FormControlExtension
+																									i:nil="true" />
+																								<AutoRefreshData>Yes</AutoRefreshData>
+																								<Command>DeleteRecord</Command>
+																								<SaveRecord>No</SaveRecord>
+																								<Text>@SYS311855</Text>
+																							</AxFormControl>
+																							<AxFormControl xmlns=""
+																								i:type="AxFormMenuFunctionButtonControl">
+																								<Name>ICS_ExpenseVendInvoiceLineSplit</Name>
+																								<AutoDeclaration>Yes</AutoDeclaration>
+																								<Type>MenuFunctionButton</Type>
+																								<FormControlExtension
+																									i:nil="true" />
+																								<AutoRefreshData>Yes</AutoRefreshData>
+																								<DataSource>ICS_ExpenseVendInvoiceLine</DataSource>
+																								<MenuItemName>ICS_ExpenseVendInvoiceLineSplit</MenuItemName>
+																								<MenuItemType>Action</MenuItemType>
+																							</AxFormControl>
+																						</Controls>
+																						<DataSource>ICS_ExpenseVendInvoiceLine</DataSource>
+																					</AxFormControl>
+																				</Controls>
+																				<Style>Strip</Style>
+																			</AxFormControl>
+																			<AxFormControl xmlns=""
+																				i:type="AxFormGridControl">
+																				<Name>LineGrid</Name>
+																				<Type>Grid</Type>
+																				<FormControlExtension
+																					i:nil="true" />
+																				<Controls>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormStringControl">
+																						<Name>LineGrid_CostCenter</Name>
+																						<Type>String</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>CostCenter</DataField>
+																						<DataSource>ICS_ExpenseVendInvoiceLine</DataSource>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormRealControl">
+																						<Name>LineGrid_AmountOrig</Name>
+																						<Type>Real</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>AmountOrig</DataField>
+																						<DataSource>ICS_ExpenseVendInvoiceLine</DataSource>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormRealControl">
+																						<Name>LineGrid_Amount</Name>
+																						<Type>Real</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>Amount</DataField>
+																						<DataSource>ICS_ExpenseVendInvoiceLine</DataSource>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormStringControl">
+																						<Name>LineGrid_CurrencyCode</Name>
+																						<Type>String</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>CurrencyCode</DataField>
+																						<DataSource>ICS_ExpenseVendInvoiceLine</DataSource>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormComboBoxControl">
+																						<Name>LineGrid_displayIsParentLine</Name>
+																						<Type>ComboBox</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataMethod>displayIsParentLine</DataMethod>
+																						<DataSource>ICS_ExpenseVendInvoiceLine</DataSource>
+																						<Items />
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormStringControl">
+																						<Name>LineGrid_BusinessUnit</Name>
+																						<Type>String</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>BusinessUnit</DataField>
+																						<DataSource>ICS_ExpenseVendInvoiceLine</DataSource>
+																					</AxFormControl>
+																					<AxFormControl xmlns=""
+																						i:type="AxFormStringControl">
+																						<Name>LineGrid_Department</Name>
+																						<Type>String</Type>
+																						<FormControlExtension
+																							i:nil="true" />
+																						<DataField>Department</DataField>
+																						<DataSource>ICS_ExpenseVendInvoiceLine</DataSource>
+																					</AxFormControl>
+																				</Controls>
+																				<DataGroup>Overview</DataGroup>
+																				<DataSource>ICS_ExpenseVendInvoiceLine</DataSource>
+																				<Style>Tabular</Style>
+																				<VisibleRows>5</VisibleRows>
+																				<VisibleRowsMode>Fixed</VisibleRowsMode>
+																			</AxFormControl>
+																		</Controls>
+																		<Caption>@ICS:ExpenseVendInvoiceLines</Caption>
+																		<FastTabExpanded>Always</FastTabExpanded>
+																		<Scrollbars>Auto</Scrollbars>
+																	</AxFormControl>
+																</Controls>
+																<AlignChild>No</AlignChild>
+																<ArrangeMethod>Vertical</ArrangeMethod>
+																<Style>FastTabs</Style>
+															</AxFormControl>
+														</Controls>
+														<BottomMargin>0</BottomMargin>
+														<BottomMarginMode>Fixed</BottomMarginMode>
+														<LeftMargin>0</LeftMargin>
+														<LeftMarginMode>Fixed</LeftMarginMode>
+														<RightMargin>0</RightMargin>
+														<RightMarginMode>Fixed</RightMarginMode>
+														<TopMargin>0</TopMargin>
+														<TopMarginMode>Fixed</TopMarginMode>
+														<BackgroundColor>DynBackgroundBlue</BackgroundColor>
+														<PanelStyle>DetailsLine</PanelStyle>
+														<Scrollbars>Auto</Scrollbars>
+													</AxFormControl>
+													<AxFormControl xmlns=""
+														i:type="AxFormTabPageControl">
+														<Name>HeaderView</Name>
+														<ElementPosition>1610612733</ElementPosition>
+														<FilterExpression>%1</FilterExpression>
+														<Height>0</Height>
+														<HeightMode>SizeToAvailable</HeightMode>
+														<Type>TabPage</Type>
+														<VerticalSpacing>-1</VerticalSpacing>
+														<Width>0</Width>
+														<WidthMode>SizeToAvailable</WidthMode>
+														<FormControlExtension
+															i:nil="true" />
+														<Controls>
+															<AxFormControl xmlns=""
+																i:type="AxFormTabControl">
+																<Name>HeaderDetailsTab</Name>
+																<AlignControl>No</AlignControl>
+																<ElementPosition>1431655764</ElementPosition>
+																<FilterExpression>%1</FilterExpression>
+																<Type>Tab</Type>
+																<VerticalSpacing>-1</VerticalSpacing>
+																<FormControlExtension
+																	i:nil="true" />
+																<Controls>
+																	<AxFormControl xmlns=""
+																		i:type="AxFormTabPageControl">
+																		<Name>TabHeaderGeneral</Name>
+																		<AutoDeclaration>Yes</AutoDeclaration>
+																		<ElementPosition>390451572</ElementPosition>
+																		<FilterExpression>%1</FilterExpression>
+																		<HeightMode>Auto</HeightMode>
+																		<Pattern>FieldsFieldGroups</Pattern>
+																		<PatternVersion>1.1</PatternVersion>
+																		<Type>TabPage</Type>
+																		<VerticalSpacing>-1</VerticalSpacing>
+																		<WidthMode>SizeToAvailable</WidthMode>
+																		<FormControlExtension
+																			i:nil="true" />
+																		<Controls>
+																			<AxFormControl xmlns=""
+																				i:type="AxFormGroupControl">
+																				<Name>Baseinfo</Name>
+																				<ElementPosition>536870910</ElementPosition>
+																				<FilterExpression>%1</FilterExpression>
+																				<Type>Group</Type>
+																				<VerticalSpacing>-1</VerticalSpacing>
+																				<FormControlExtension
+																					i:nil="true" />
+																				<Controls />
+																				<Caption>@SYS19627</Caption>
+																				<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																			</AxFormControl>
+																		</Controls>
+																		<ColumnsMode>Fill</ColumnsMode>
+																		<BackgroundColor>WindowBackground</BackgroundColor>
+																		<Caption>@SYS2952</Caption>
+																		<DataSource>ICS_ExpenseVendInvoice</DataSource>
+																		<Scrollbars>Auto</Scrollbars>
+																	</AxFormControl>
+																</Controls>
+																<AlignChild>No</AlignChild>
+																<Style>FastTabs</Style>
+															</AxFormControl>
+														</Controls>
+														<BottomMargin>0</BottomMargin>
+														<BottomMarginMode>Fixed</BottomMarginMode>
+														<LeftMargin>0</LeftMargin>
+														<LeftMarginMode>Fixed</LeftMarginMode>
+														<RightMargin>0</RightMargin>
+														<RightMarginMode>Fixed</RightMarginMode>
+														<TopMargin>0</TopMargin>
+														<TopMarginMode>Fixed</TopMarginMode>
+														<BackgroundColor>DynBackgroundBlue</BackgroundColor>
+														<PanelStyle>DetailsHeader</PanelStyle>
+														<Scrollbars>Auto</Scrollbars>
+													</AxFormControl>
+												</Controls>
+												<AlignChild>No</AlignChild>
+												<ArrangeMethod>Vertical</ArrangeMethod>
+												<ShowTabs>No</ShowTabs>
+											</AxFormControl>
+										</Controls>
+									</AxFormControl>
+									<AxFormControl xmlns=""
+										i:type="AxFormGroupControl">
+										<Name>ImageGroupControl</Name>
+										<AutoDeclaration>Yes</AutoDeclaration>
+										<HeightMode>SizeToAvailable</HeightMode>
+										<Type>Group</Type>
+										<WidthMode>SizeToAvailable</WidthMode>
+										<FormControlExtension
+											i:nil="true" />
+										<Controls>
+											<AxFormControl xmlns=""
+												i:type="AxFormContainerControl">
+												<Name>DocuViewerContainer</Name>
+												<Type>Container</Type>
+												<FormControlExtension>
+													<Name>DocuViewerContainer</Name>
+													<ExtensionComponents />
+													<ExtensionProperties>
+														<AxFormControlExtensionProperty>
+															<Name>imageAnnotatorControllerClassName</Name>
+															<Type>String</Type>
+															<Value>DocuRefImageAnnotatorController</Value>
+														</AxFormControlExtensionProperty>
+														<AxFormControlExtensionProperty>
+															<Name>dataSource</Name>
+															<Type>String</Type>
+															<Value>ICS_ExpenseVendInvoice</Value>
+														</AxFormControlExtensionProperty>
+														<AxFormControlExtensionProperty>
+															<Name>parmDocuManagementOptionsClassName</Name>
+															<Type>String</Type>
+														</AxFormControlExtensionProperty>
+														<AxFormControlExtensionProperty>
+															<Name>disableDelete</Name>
+															<Type>Enum</Type>
+															<TypeName>boolean</TypeName>
+															<Value>True</Value>
+														</AxFormControlExtensionProperty>
+														<AxFormControlExtensionProperty>
+															<Name>disableUpload</Name>
+															<Type>Enum</Type>
+															<TypeName>boolean</TypeName>
+															<Value>True</Value>
+														</AxFormControlExtensionProperty>
+														<AxFormControlExtensionProperty>
+															<Name>disableURL</Name>
+															<Type>Enum</Type>
+															<TypeName>boolean</TypeName>
+															<Value>False</Value>
+														</AxFormControlExtensionProperty>
+														<AxFormControlExtensionProperty>
+															<Name>disableNotes</Name>
+															<Type>Enum</Type>
+															<TypeName>boolean</TypeName>
+															<Value>False</Value>
+														</AxFormControlExtensionProperty>
+														<AxFormControlExtensionProperty>
+															<Name>disableAnnotator</Name>
+															<Type>Enum</Type>
+															<TypeName>boolean</TypeName>
+															<Value>False</Value>
+														</AxFormControlExtensionProperty>
+														<AxFormControlExtensionProperty>
+															<Name>disableDocumentViewer</Name>
+															<Type>Enum</Type>
+															<TypeName>boolean</TypeName>
+															<Value>False</Value>
+														</AxFormControlExtensionProperty>
+														<AxFormControlExtensionProperty>
+															<Name>maxWidth</Name>
+															<Type>Int32</Type>
+															<Value>0</Value>
+														</AxFormControlExtensionProperty>
+														<AxFormControlExtensionProperty>
+															<Name>maxHeight</Name>
+															<Type>Int32</Type>
+															<Value>0</Value>
+														</AxFormControlExtensionProperty>
+														<AxFormControlExtensionProperty>
+															<Name>showScanProcessInfo</Name>
+															<Type>Enum</Type>
+															<TypeName>boolean</TypeName>
+															<Value>False</Value>
+														</AxFormControlExtensionProperty>
+													</ExtensionProperties>
+												</FormControlExtension>
+												<Controls />
+											</AxFormControl>
+										</Controls>
+										<HideIfEmpty>No</HideIfEmpty>
+									</AxFormControl>
+								</Controls>
+								<Columns>2</Columns>
+							</AxFormControl>
+						</Controls>
+						<Columns>3</Columns>
+						<PanelStyle>Details</PanelStyle>
+						<Style>DetailsFormDetails</Style>
+					</AxFormControl>
+					<AxFormControl xmlns=""
+						i:type="AxFormTabPageControl">
+						<Name>TabPageGrid</Name>
+						<Type>TabPage</Type>
+						<FormControlExtension
+							i:nil="true" />
+						<Controls>
+							<AxFormControl xmlns=""
+								i:type="AxFormGroupControl">
+								<Name>CustomFilterGroup</Name>
+								<Pattern>CustomAndQuickFilters</Pattern>
+								<PatternVersion>1.1</PatternVersion>
+								<Type>Group</Type>
+								<WidthMode>SizeToAvailable</WidthMode>
+								<FormControlExtension
+									i:nil="true" />
+								<Controls>
+									<AxFormControl>
+										<Name>QuickFilter</Name>
+										<FormControlExtension>
+											<Name>QuickFilterControl</Name>
+											<ExtensionComponents />
+											<ExtensionProperties>
+												<AxFormControlExtensionProperty>
+													<Name>targetControlName</Name>
+													<Type>String</Type>
+													<Value>GridHeader</Value>
+												</AxFormControlExtensionProperty>
+												<AxFormControlExtensionProperty>
+													<Name>defaultColumnName</Name>
+													<Type>String</Type>
+													<Value>Overview_InvoiceId</Value>
+												</AxFormControlExtensionProperty>
+												<AxFormControlExtensionProperty>
+													<Name>placeholderText</Name>
+													<Type>String</Type>
+												</AxFormControlExtensionProperty>
+											</ExtensionProperties>
+										</FormControlExtension>
+									</AxFormControl>
+									<AxFormControl xmlns=""
+										i:type="AxFormComboBoxControl">
+										<Name>ExpenseApprovalStatus</Name>
+										<AutoDeclaration>Yes</AutoDeclaration>
+										<FilterExpression>%1</FilterExpression>
+										<Type>ComboBox</Type>
+										<FormControlExtension
+											i:nil="true" />
+										<EnumType>ICS_ExpenseVendInvoiceApprovalStatusFilter</EnumType>
+										<Label>@ICS:ExpenseApproval</Label>
+										<Items />
+									</AxFormControl>
+									<AxFormControl xmlns=""
+										i:type="AxFormComboBoxControl">
+										<Name>BudgetApprovalStatus</Name>
+										<AutoDeclaration>Yes</AutoDeclaration>
+										<FilterExpression>%1</FilterExpression>
+										<Type>ComboBox</Type>
+										<FormControlExtension
+											i:nil="true" />
+										<EnumType>ICS_ExpenseVendInvoiceApprovalStatusFilter</EnumType>
+										<Label>@ICS:BudgetApproval</Label>
+										<Items />
+									</AxFormControl>
+									<AxFormControl xmlns=""
+										i:type="AxFormComboBoxControl">
+										<Name>LedgerJournalTableStatus</Name>
+										<AutoDeclaration>Yes</AutoDeclaration>
+										<FilterExpression>%1</FilterExpression>
+										<Type>ComboBox</Type>
+										<FormControlExtension
+											i:nil="true" />
+										<EnumType>ICS_LedgerJournalTableStatusFilter</EnumType>
+										<Label>@SYS25908</Label>
+										<Items />
+									</AxFormControl>
+									<AxFormControl xmlns=""
+										i:type="AxFormComboBoxControl">
+										<Name>ExpenseFlowTypeStatus</Name>
+										<AutoDeclaration>Yes</AutoDeclaration>
+										<FilterExpression>%1</FilterExpression>
+										<Type>ComboBox</Type>
+										<FormControlExtension
+											i:nil="true" />
+										<EnumType>ICS_ExpenseFlowTypeStatusFilter</EnumType>
+										<Items />
+									</AxFormControl>
+									<AxFormControl xmlns=""
+										i:type="AxFormComboBoxControl">
+										<Name>ExpenseAmountStatus</Name>
+										<AutoDeclaration>Yes</AutoDeclaration>
+										<FilterExpression>%1</FilterExpression>
+										<Type>ComboBox</Type>
+										<FormControlExtension
+											i:nil="true" />
+										<EnumType>ICS_ExpenseAmountFilter</EnumType>
+										<Items />
+									</AxFormControl>
+								</Controls>
+								<ArrangeMethod>HorizontalLeft</ArrangeMethod>
+								<FrameType>None</FrameType>
+								<Style>CustomFilter</Style>
+								<ViewEditMode>Edit</ViewEditMode>
+							</AxFormControl>
+							<AxFormControl xmlns=""
+								i:type="AxFormGridControl">
+								<Name>GridHeader</Name>
+								<AutoDeclaration>Yes</AutoDeclaration>
+								<ElementPosition>1431655764</ElementPosition>
+								<FilterExpression>%1</FilterExpression>
+								<Type>Grid</Type>
+								<VerticalSpacing>-1</VerticalSpacing>
+								<FormControlExtension
+									i:nil="true" />
+								<Controls>
+									<AxFormControl xmlns=""
+										i:type="AxFormGroupControl">
+										<Name>Overview</Name>
+										<Type>Group</Type>
+										<FormControlExtension
+											i:nil="true" />
+										<Controls>
+											<AxFormControl xmlns=""
+												i:type="AxFormStringControl">
+												<Name>Overview_InvoiceId</Name>
+												<Type>String</Type>
+												<FormControlExtension
+													i:nil="true" />
+												<DataField>InvoiceId</DataField>
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+											</AxFormControl>
+											<AxFormControl xmlns=""
+												i:type="AxFormDateControl">
+												<Name>Overview_InvoiceDate</Name>
+												<Type>Date</Type>
+												<FormControlExtension
+													i:nil="true" />
+												<DataField>InvoiceDate</DataField>
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+											</AxFormControl>
+											<AxFormControl xmlns=""
+												i:type="AxFormDateControl">
+												<Name>Overview_DocumentDate</Name>
+												<Type>Date</Type>
+												<FormControlExtension
+													i:nil="true" />
+												<DataField>DocumentDate</DataField>
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+											</AxFormControl>
+											<AxFormControl xmlns=""
+												i:type="AxFormStringControl">
+												<Name>Overview_SuppAcc</Name>
+												<Type>String</Type>
+												<FormControlExtension
+													i:nil="true" />
+												<DataField>SuppAcc</DataField>
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+											</AxFormControl>
+											<AxFormControl xmlns=""
+												i:type="AxFormStringControl">
+												<Name>Overview_SuppName</Name>
+												<Type>String</Type>
+												<FormControlExtension
+													i:nil="true" />
+												<DataField>SuppName</DataField>
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+											</AxFormControl>
+											<AxFormControl xmlns=""
+												i:type="AxFormStringControl">
+												<Name>Overview_displayCurrencyCode</Name>
+												<Type>String</Type>
+												<FormControlExtension
+													i:nil="true" />
+												<DataMethod>displayCurrencyCode</DataMethod>
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+											</AxFormControl>
+											<AxFormControl xmlns=""
+												i:type="AxFormSegmentedEntryControl">
+												<Name>Overview_OffsetLedgerDimension</Name>
+												<AutoDeclaration>Yes</AutoDeclaration>
+												<Type>SegmentedEntry</Type>
+												<FormControlExtension>
+													<Name>SegmentedEntryControl</Name>
+													<ExtensionComponents />
+													<ExtensionProperties>
+														<AxFormControlExtensionProperty>
+															<Name>parmControllerClassName</Name>
+															<Type>String</Type>
+															<Value>DimensionDynamicAccountController</Value>
+														</AxFormControlExtensionProperty>
+														<AxFormControlExtensionProperty>
+															<Name>parmAccountTypeEnumName</Name>
+															<Type>String</Type>
+															<Value>OffsetAccountType</Value>
+														</AxFormControlExtensionProperty>
+														<AxFormControlExtensionProperty>
+															<Name>parmIsDefaultAccount</Name>
+															<Type>Enum</Type>
+															<TypeName>boolean</TypeName>
+															<Value>False</Value>
+														</AxFormControlExtensionProperty>
+														<AxFormControlExtensionProperty>
+															<Name>parmValidateBlockedForManualEntry</Name>
+															<Type>Enum</Type>
+															<TypeName>NoYes</TypeName>
+														</AxFormControlExtensionProperty>
+														<AxFormControlExtensionProperty>
+															<Name>parmLockMainAccountSegment</Name>
+															<Type>Enum</Type>
+															<TypeName>NoYes</TypeName>
+														</AxFormControlExtensionProperty>
+														<AxFormControlExtensionProperty>
+															<Name>parmPostingType</Name>
+															<Type>Enum</Type>
+															<TypeName>LedgerPostingType</TypeName>
+														</AxFormControlExtensionProperty>
+														<AxFormControlExtensionProperty>
+															<Name>parmIncludeTotalAccounts</Name>
+															<Type>Enum</Type>
+															<TypeName>NoYes</TypeName>
+														</AxFormControlExtensionProperty>
+														<AxFormControlExtensionProperty>
+															<Name>parmIncludeFinancialAccounts</Name>
+															<Type>Enum</Type>
+															<TypeName>NoYes</TypeName>
+														</AxFormControlExtensionProperty>
+													</ExtensionProperties>
+												</FormControlExtension>
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+												<ReferenceField>OffsetLedgerDimension</ReferenceField>
+											</AxFormControl>
+											<AxFormControl xmlns=""
+												i:type="AxFormComboBoxControl">
+												<Name>Overview_ExpenseApproval</Name>
+												<Type>ComboBox</Type>
+												<FormControlExtension
+													i:nil="true" />
+												<DataField>ExpenseApproval</DataField>
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+												<Items />
+											</AxFormControl>
+											<AxFormControl xmlns=""
+												i:type="AxFormReferenceGroupControl">
+												<Name>Overview_ExpenseApprovedBy</Name>
+												<Type>ReferenceGroup</Type>
+												<FormControlExtension
+													i:nil="true" />
+												<Controls />
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+												<ReferenceField>ExpenseApprovedBy</ReferenceField>
+											</AxFormControl>
+											<AxFormControl xmlns=""
+												i:type="AxFormDateTimeControl">
+												<Name>Overview_ExpenseApprovedDateTime</Name>
+												<Type>DateTime</Type>
+												<FormControlExtension
+													i:nil="true" />
+												<DataField>ExpenseApprovedDateTime</DataField>
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+											</AxFormControl>
+											<AxFormControl xmlns=""
+												i:type="AxFormComboBoxControl">
+												<Name>Overview_BudgetApproval</Name>
+												<Type>ComboBox</Type>
+												<FormControlExtension
+													i:nil="true" />
+												<DataField>BudgetApproval</DataField>
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+												<Items />
+											</AxFormControl>
+											<AxFormControl xmlns=""
+												i:type="AxFormReferenceGroupControl">
+												<Name>Overview_BudgetApprovedBy</Name>
+												<Type>ReferenceGroup</Type>
+												<FormControlExtension
+													i:nil="true" />
+												<Controls />
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+												<ReferenceField>BudgetApprovedBy</ReferenceField>
+											</AxFormControl>
+											<AxFormControl xmlns=""
+												i:type="AxFormDateTimeControl">
+												<Name>Overview_BudgetApprovedDateTime</Name>
+												<Type>DateTime</Type>
+												<FormControlExtension
+													i:nil="true" />
+												<DataField>BudgetApprovedDateTime</DataField>
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+											</AxFormControl>
+											<AxFormControl xmlns=""
+												i:type="AxFormComboBoxControl">
+												<Name>Overview_RefusalReason</Name>
+												<Type>ComboBox</Type>
+												<FormControlExtension
+													i:nil="true" />
+												<DataField>RefusalReason</DataField>
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+												<Items />
+											</AxFormControl>
+											<AxFormControl xmlns=""
+												i:type="AxFormStringControl">
+												<Name>Overview_Notes</Name>
+												<Type>String</Type>
+												<FormControlExtension
+													i:nil="true" />
+												<DataField>Notes</DataField>
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+											</AxFormControl>
+											<AxFormControl xmlns=""
+												i:type="AxFormStringControl">
+												<Name>Overview_VATNum</Name>
+												<Type>String</Type>
+												<FormControlExtension
+													i:nil="true" />
+												<DataField>VATNum</DataField>
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+											</AxFormControl>
+											<AxFormControl xmlns=""
+												i:type="AxFormStringControl">
+												<Name>Overview_FiscalCode</Name>
+												<Type>String</Type>
+												<FormControlExtension
+													i:nil="true" />
+												<DataField>FiscalCode</DataField>
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+											</AxFormControl>
+											<AxFormControl xmlns=""
+												i:type="AxFormReferenceGroupControl">
+												<Name>Overview_MainContactWorker</Name>
+												<Type>ReferenceGroup</Type>
+												<FormControlExtension
+													i:nil="true" />
+												<Controls />
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+												<ReferenceField>MainContactWorker</ReferenceField>
+											</AxFormControl>
+											<AxFormControl xmlns=""
+												i:type="AxFormCheckBoxControl">
+												<Name>Overview_InvoiceSDI</Name>
+												<Type>CheckBox</Type>
+												<FormControlExtension
+													i:nil="true" />
+												<DataField>InvoiceSDI</DataField>
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+											</AxFormControl>
+											<AxFormControl xmlns=""
+												i:type="AxFormComboBoxControl">
+												<Name>Overview_FlowType</Name>
+												<Type>ComboBox</Type>
+												<FormControlExtension
+													i:nil="true" />
+												<DataField>FlowType</DataField>
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+												<Items />
+											</AxFormControl>
+											<AxFormControl xmlns=""
+												i:type="AxFormReferenceGroupControl">
+												<Name>Overview_FT_approval_AccName</Name>
+												<Type>ReferenceGroup</Type>
+												<FormControlExtension
+													i:nil="true" />
+												<Controls />
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+												<ReferenceField>FT_approval_AccName</ReferenceField>
+											</AxFormControl>
+											<AxFormControl xmlns=""
+												i:type="AxFormStringControl">
+												<Name>Overview_ReceivingSociety</Name>
+												<Type>String</Type>
+												<FormControlExtension
+													i:nil="true" />
+												<DataField>ReceivingSociety</DataField>
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+											</AxFormControl>
+											<AxFormControl xmlns=""
+												i:type="AxFormStringControl">
+												<Name>Overview_PathXML</Name>
+												<Type>String</Type>
+												<Visible>No</Visible>
+												<FormControlExtension
+													i:nil="true" />
+												<DataField>PathXML</DataField>
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+											</AxFormControl>
+											<AxFormControl xmlns=""
+												i:type="AxFormStringControl">
+												<Name>Overview_PathPDF</Name>
+												<Type>String</Type>
+												<Visible>No</Visible>
+												<FormControlExtension
+													i:nil="true" />
+												<DataField>PathPDF</DataField>
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+											</AxFormControl>
+											<AxFormControl xmlns=""
+												i:type="AxFormStringControl">
+												<Name>Overview_PathPreview</Name>
+												<Type>String</Type>
+												<Visible>No</Visible>
+												<FormControlExtension
+													i:nil="true" />
+												<DataField>PathPreview</DataField>
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+											</AxFormControl>
+											<AxFormControl xmlns=""
+												i:type="AxFormComboBoxControl">
+												<Name>Overview_SyncStatus</Name>
+												<AllowEdit>No</AllowEdit>
+												<Type>ComboBox</Type>
+												<FormControlExtension
+													i:nil="true" />
+												<DataField>SyncStatus</DataField>
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+												<Items />
+											</AxFormControl>
+											<AxFormControl xmlns=""
+												i:type="AxFormComboBoxControl">
+												<Name>Overview_Source</Name>
+												<AllowEdit>No</AllowEdit>
+												<Type>ComboBox</Type>
+												<FormControlExtension
+													i:nil="true" />
+												<DataField>Source</DataField>
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+												<Items />
+											</AxFormControl>
+											<AxFormControl xmlns=""
+												i:type="AxFormStringControl">
+												<Name>Overview_LedgerJournalNameId</Name>
+												<Type>String</Type>
+												<FormControlExtension
+													i:nil="true" />
+												<DataField>LedgerJournalNameId</DataField>
+												<DataSource>ICS_ExpenseVendInvoice</DataSource>
+											</AxFormControl>
+										</Controls>
+										<DataGroup>Overview</DataGroup>
+										<DataSource>ICS_ExpenseVendInvoice</DataSource>
+									</AxFormControl>
+									<AxFormControl xmlns=""
+										i:type="AxFormRealControl">
+										<Name>ICS_ExpenseVendInvoiceAmountView_Amount</Name>
+										<Type>Real</Type>
+										<FormControlExtension
+											i:nil="true" />
+										<DataField>Amount</DataField>
+										<DataSource>ICS_ExpenseVendInvoiceAmountView</DataSource>
+									</AxFormControl>
+									<AxFormControl xmlns=""
+										i:type="AxFormRealControl">
+										<Name>ICS_ExpenseVendInvoiceAmountView_AmountOrig</Name>
+										<Type>Real</Type>
+										<FormControlExtension
+											i:nil="true" />
+										<DataField>AmountOrig</DataField>
+										<DataSource>ICS_ExpenseVendInvoiceAmountView</DataSource>
+									</AxFormControl>
+									<AxFormControl xmlns=""
+										i:type="AxFormRealControl">
+										<Name>ICS_ExpenseVendInvoiceAmountView_AmountAI</Name>
+										<Type>Real</Type>
+										<FormControlExtension
+											i:nil="true" />
+										<DataField>AmountAI</DataField>
+										<DataSource>ICS_ExpenseVendInvoiceAmountView</DataSource>
+									</AxFormControl>
+									<AxFormControl xmlns=""
+										i:type="AxFormStringControl">
+										<Name>LedgerJournalTable_JournalNum</Name>
+										<Type>String</Type>
+										<FormControlExtension
+											i:nil="true" />
+										<DataField>JournalNum</DataField>
+										<DataSource>LedgerJournalTable</DataSource>
+									</AxFormControl>
+									<AxFormControl xmlns=""
+										i:type="AxFormCheckBoxControl">
+										<Name>LedgerJournalTable_Created</Name>
+										<Enabled>No</Enabled>
+										<Type>CheckBox</Type>
+										<FormControlExtension
+											i:nil="true" />
+										<DataMethod>ledgerJournalTableCreated</DataMethod>
+										<DataSource>ICS_ExpenseVendInvoice</DataSource>
+									</AxFormControl>
+									<AxFormControl xmlns=""
+										i:type="AxFormDateTimeControl">
+										<Name>ICS_ExpenseVendInvoice_LedgerJournalCreatedDateTime</Name>
+										<Type>DateTime</Type>
+										<FormControlExtension
+											i:nil="true" />
+										<DataField>LedgerJournalCreatedDateTime</DataField>
+										<DataSource>ICS_ExpenseVendInvoice</DataSource>
+									</AxFormControl>
+									<AxFormControl xmlns=""
+										i:type="AxFormStringControl">
+										<Name>LedgerJournalTable_CreatedBy</Name>
+										<Type>String</Type>
+										<FormControlExtension
+											i:nil="true" />
+										<DataField>CreatedBy</DataField>
+										<DataSource>LedgerJournalTable</DataSource>
+										<Label>General journal created by</Label>
+									</AxFormControl>
+									<AxFormControl xmlns=""
+										i:type="AxFormCheckBoxControl">
+										<Name>LedgerJournalTable_Posted</Name>
+										<Type>CheckBox</Type>
+										<FormControlExtension
+											i:nil="true" />
+										<DataField>Posted</DataField>
+										<DataSource>LedgerJournalTable</DataSource>
+										<Label>General journal posted</Label>
+									</AxFormControl>
+									<AxFormControl xmlns=""
+										i:type="AxFormDateTimeControl">
+										<Name>LedgerJournalTable_PostedDateTime</Name>
+										<Type>DateTime</Type>
+										<FormControlExtension
+											i:nil="true" />
+										<DataField>PostedDateTime</DataField>
+										<DataSource>LedgerJournalTable</DataSource>
+										<Label>General journal posting date and time</Label>
+									</AxFormControl>
+								</Controls>
+								<DataSource>ICS_ExpenseVendInvoice</DataSource>
+								<DefaultAction>GridDefaultAction</DefaultAction>
+							</AxFormControl>
+							<AxFormControl xmlns=""
+								i:type="AxFormCommandButtonControl">
+								<Name>GridDefaultAction</Name>
+								<Type>CommandButton</Type>
+								<Visible>No</Visible>
+								<FormControlExtension
+									i:nil="true" />
+								<Command>DetailsView</Command>
+							</AxFormControl>
+						</Controls>
+						<PanelStyle>Grid</PanelStyle>
+						<Style>DetailsFormGrid</Style>
+					</AxFormControl>
+				</Controls>
+				<ArrangeMethod>Vertical</ArrangeMethod>
+				<ShowTabs>No</ShowTabs>
+			</AxFormControl>
+		</Controls>
+	</Design>
+	<Parts />
+</AxForm>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxEnum xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseVendInvoiceSyncStatus</Name>
+	<Help>@ICS:ExpenseVendInvoiceSyncStatusHelpTxt</Help>
+	<Label>@ICS:ExpenseVendInvoiceSyncStatus</Label>
+	<EnumValues>
+		<AxEnumValue>
+			<Name>NotSynchronized</Name>
+			<Label>@ICS:ExpenseVendInvoiceSyncStatusNoSync</Label>
+		</AxEnumValue>
+		<AxEnumValue>
+			<Name>Synchronized</Name>
+			<Label>@ICS:ExpenseVendInvoiceSyncStatusSync</Label>
+			<Value>10</Value>
+		</AxEnumValue>
+		<AxEnumValue>
+			<Name>Error</Name>
+			<Label>@ICS:ExpenseVendInvoiceSyncStatusError</Label>
+			<Value>90</Value>
+		</AxEnumValue>
+	</EnumValues>
+</AxEnum>

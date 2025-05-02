@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxClass xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseVendInvoiceRemovalService</Name>
+	<SourceCode>
+		<Declaration><![CDATA[
+/// <summary>
+/// Expense vendor invoice removal service.
+/// </summary>
+public class ICS_ExpenseVendInvoiceRemovalService extends SysOperationServiceBase
+{
+    ICS_ExpenseVendInvoiceRemovalContract contract;
+
+}
+]]></Declaration>
+		<Methods>
+			<Method>
+				<Name>process</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Updates FlowType
+    /// </summary>
+    /// <param name = "_contract">Contract class instance</param>
+    protected void process(ICS_ExpenseVendInvoiceRemovalContract _contract)
+    {
+        contract = _contract;
+
+        if (_contract.parmRunByQuery())
+        {
+            Query       query       = new Query(SysOperationHelper::base64Decode(_contract.parmPackedQuery()));
+            QueryRun    queryRun    = new QueryRun(query);
+
+            while(queryRun.next())
+            {
+                this.updateLine(queryRun.get(tableNum(ICS_ExpenseVendInvoice)).RecId);
+            }
+        }
+        else if (conLen(_contract.parmRecordCon())>0)
+        {
+            Set recordSet = Set::create(_contract.parmRecordCon());
+
+            SetEnumerator se = recordSet.getEnumerator();
+
+            while (se.moveNext())
+            {                
+                this.updateLine(se.current());
+            }
+        }
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>updateLine</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Updates line
+    /// </summary>
+    /// <param name = "_expenseVendInvoiceRecId">EExpenseVendInvoice reference Id</param>
+    protected void updateLine(RefRecId  _expenseVendInvoiceRecId)
+    {
+        System.ArgumentException    ex;
+        ICS_ExpenseVendInvoice      expenseVendInvoice = ICS_ExpenseVendInvoice::findByRecId(_expenseVendInvoiceRecId, true);
+
+        if (expenseVendInvoice.LedgerJournalTableRecId != nullValueBaseType(Types::Int64))
+        {
+            throw error(strFmt("@ICS:DeleteInvoiceError", expenseVendInvoice.InvoiceId));
+        }
+
+        try
+        {
+            ttsbegin;
+
+            if (contract.parmDeleteRecord())
+            {
+                if (!expenseVendInvoice.validateDelete())
+                {
+                    throw error("@SYS78374");
+                }
+
+                expenseVendInvoice.delete();
+
+                info(strfmt("@ICS:InvoiceHasBeenRemoved", expenseVendInvoice.InvoiceId));
+            }
+            else
+            {
+                expenseVendInvoice.FlowType = contract.parmFlowType();
+
+                if (contract.parmHcmWorkerRecId() != nullValueBaseType(Types::Int64))
+                {
+                    expenseVendInvoice.MainContactWorker = contract.parmHcmWorkerRecId();
+                }
+        
+                if (!expenseVendInvoice.validateWrite())
+                {
+                    throw error("@SYS21628");
+                }
+
+                expenseVendInvoice.update();
+                        
+                info(strfmt("@ICS:InvoiceBeenUpdated", expenseVendInvoice.InvoiceId));
+            }
+
+            ttscommit;
+        }
+        catch(ex)
+        {
+            info(ex.Message);
+        }
+    }
+
+]]></Source>
+			</Method>
+		</Methods>
+	</SourceCode>
+</AxClass>

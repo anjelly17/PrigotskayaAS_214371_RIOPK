@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxClass xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseVendInvoiceLineSplitService</Name>
+	<SourceCode>
+		<Declaration><![CDATA[
+/// <summary>
+/// Expense vendor invoice line split service.
+/// </summary>
+public final class ICS_ExpenseVendInvoiceLineSplitService extends SysOperationServiceBase
+{
+}
+]]></Declaration>
+		<Methods>
+			<Method>
+				<Name>process</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Process of the service
+    /// </summary>
+    /// <param name = "_contract">The ICS_ExpenseVendInvoiceLineSplitContract contract</param>
+    public void process(ICS_ExpenseVendInvoiceLineSplitContract _contract)
+    {
+        ICS_ExpenseVendInvoiceLine  invoiceLine     = ICS_ExpenseVendInvoiceLine::findByRecId(_contract.parmVendInvoiceLineRecId());
+
+        ttsbegin;
+        this.createInvoiceLine(_contract, invoiceLine);
+        this.updateInvoiceLine(_contract, invoiceLine);
+        ttscommit;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>createInvoiceLine</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Create invoice line.
+    /// </summary>
+    /// <param name = "_contract"> <c>ICS_ExpenseVendInvoiceLineSplitContract</c> class.</param>
+    /// <param name = "_invoiceLine"> <c>ICS_ExpenseVendInvoiceLine</c> buffer.</param>
+    protected void createInvoiceLine(   ICS_ExpenseVendInvoiceLineSplitContract _contract,
+                                        ICS_ExpenseVendInvoiceLine              _invoiceLine)        
+    {
+        ICS_ExpenseVendInvoiceLine invoiceLine = ICS_ExpenseVendInvoiceLine::findByDimensions(
+            _invoiceLine.ExpenseVendInvoice, 
+            _contract.parmDepartment(),
+            _contract.parmCostCenter(),
+            _contract.parmBusinessUnit(),
+            true);
+
+        if (invoiceLine.RecId == nullValueBaseType(Types::Int64))
+        {
+            invoiceLine.initValue();
+            invoiceLine.initFromParentLine(_invoiceLine);
+            invoiceLine.AmountOrig      = _contract.parmLineAmount();
+            invoiceLine.Department      = _contract.parmDepartment();
+            invoiceLine.CostCenter      = _contract.parmCostCenter();
+            invoiceLine.BusinessUnit    = _contract.parmBusinessUnit();
+        }
+        else
+        {
+            invoiceLine.AmountOrig  += _contract.parmLineAmount();
+        }
+
+        invoiceLine.setAmount();
+
+        if (!invoiceLine.validateWrite())
+        {
+            throw error("@SYS21628");
+        }
+
+        invoiceLine.write();
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>updateInvoiceLine</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Update invoice line.
+    /// </summary>
+    /// <param name = "_contract"> Contract.</param>
+    /// <param name = "_invoiceLine"> <c>ICS_ExpenseVendInvoiceLine</c> buffer.</param>    
+    protected void updateInvoiceLine(   ICS_ExpenseVendInvoiceLineSplitContract _contract,
+                                        ICS_ExpenseVendInvoiceLine              _invoiceLine       
+                                        )
+    {
+        ICS_ExpenseVendInvoiceLine invoiceLine = _invoiceLine;
+
+        ttsbegin;
+
+        invoiceLine.selectForUpdate(true);
+
+        invoiceLine.AmountOrig  = invoiceLine.AmountOrig - _contract.parmLineAmount();
+
+        invoiceLine.setAmount();
+
+        if (!invoiceLine.validateWrite())
+        {
+            throw error("@SYS21628");
+        }
+
+        invoiceLine.update();
+
+        ttscommit;
+    }
+
+]]></Source>
+			</Method>
+		</Methods>
+	</SourceCode>
+</AxClass>

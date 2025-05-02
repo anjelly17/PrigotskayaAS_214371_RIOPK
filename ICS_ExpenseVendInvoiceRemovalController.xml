@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxClass xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseVendInvoiceRemovalController</Name>
+	<SourceCode>
+		<Declaration><![CDATA[
+/// <summary>
+/// Expense vendor invoice removal controller.
+/// </summary>
+public class ICS_ExpenseVendInvoiceRemovalController extends SysOperationServiceController
+{
+}
+]]></Declaration>
+		<Methods>
+			<Method>
+				<Name>new</Name>
+				<Source><![CDATA[
+    protected void new()
+    {
+        super(classStr(ICS_ExpenseVendInvoiceRemovalService), 
+            methodStr(ICS_ExpenseVendInvoiceRemovalService, process), 
+            SysOperationExecutionMode::Synchronous);
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>main</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Entry point of controller class.
+    /// </summary>
+    /// <param name = "_args">An <c>Args</c> instance.</param>
+    public static void main(Args _args)
+    {
+        try
+        {
+            ICS_ExpenseVendInvoiceRemovalController controller = new ICS_ExpenseVendInvoiceRemovalController();
+            
+            controller.showBatchTab(true);
+            controller.initParmRecord(_args);
+            controller.parmArgs(_args);
+            controller.parmShowDialog(true);
+            controller.parmLoadFromSysLastValue(false);
+            controller.parmDisplayQueryFilter(_args.menuItemName() == menuItemActionStr(ICS_ExpenseVendInvoiceRemovalByQuery));
+
+            controller.startOperation();
+        }
+        catch (Exception::Error)
+        {
+            exceptionTextFallThrough();
+        }
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>initParmRecord</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Initializes vendor invoice record id.
+    /// </summary>
+    /// <param name = "_args">An <c>Args</c> instance..</param>
+    public void initParmRecord(Args _args)
+    {
+        if (_args)
+        {
+            ICS_ExpenseVendInvoiceRemovalContract   contract    = this.getDataContractObject();
+
+            if (_args.menuItemName() == menuItemActionStr(ICS_ExpenseVendInvoiceRemovalByQuery))
+            {
+                contract.parmRunByQuery(true);
+            }
+            else if (_args.dataset() == tableNum(ICS_ExpenseVendInvoice))
+            {                
+                Set recordSet   = new Set(Types::Int64);
+
+                if (_args.caller() is FormRun)
+                {
+                    ICS_ExpenseVendInvoice  expenseInvoice;
+                    MultiSelectionHelper    multiselectionHelper = MultiSelectionHelper::createFromCaller(_args.caller());
+                        
+                    expenseInvoice = multiselectionHelper.getFirst();
+
+                    while (expenseInvoice)
+                    {
+                        recordSet.add(expenseInvoice.RecId);
+            
+                        expenseInvoice = multiselectionHelper.getNext();
+                    }
+                }
+                else
+                {
+                    recordSet.add(_args.record().RecId);
+                }
+
+                contract.parmRecordCon(recordSet.pack());              
+            }
+
+            contract.parmFlowType(ICS_ExpenseFlowType::Removed);
+        }
+    }
+
+]]></Source>
+			</Method>
+		</Methods>
+	</SourceCode>
+</AxClass>

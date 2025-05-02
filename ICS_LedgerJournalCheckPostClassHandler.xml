@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxClass xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_LedgerJournalCheckPostClassHandler</Name>
+	<SourceCode>
+		<Declaration><![CDATA[
+/// <summary>
+/// Ledger journl check post handler
+/// </summary>
+public class ICS_LedgerJournalCheckPostClassHandler
+{
+}
+]]></Declaration>
+		<Methods>
+			<Method>
+				<Name>LedgerJournalCheckPost_runInternalPostPostJournalDelegate</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Logic executed after journal posting
+    /// </summary>
+    /// <param name="_ledgerJournalCheckPost">LedgerJournalCheckPost class</param>
+    /// <param name="_postingSuccess">Indicate if posting is ok</param>
+    /// <param name="_intercompanyPostingSuccess">Indicate if intercompany posting is ok</param>
+    [SubscribesTo(classStr(LedgerJournalCheckPost), delegateStr(LedgerJournalCheckPost, runInternalPostPostJournalDelegate))]
+    public static void LedgerJournalCheckPost_runInternalPostPostJournalDelegate(LedgerJournalCheckPost _ledgerJournalCheckPost, boolean _postingSuccess, boolean _intercompanyPostingSuccess)
+    {
+        if (_postingSuccess && ICS_ExpenseVendInvoice::findByJournalRecId(_ledgerJournalCheckPost.parmLedgerJournalTable().RecId).RecId)
+        {
+            Info("Invoike external service!");
+        }
+    }
+
+]]></Source>
+			</Method>
+		</Methods>
+	</SourceCode>
+</AxClass>

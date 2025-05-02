@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxClass xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseVendInvoiceRemovalUIBuilder</Name>
+	<SourceCode>
+		<Declaration><![CDATA[
+/// <summary>
+/// Expense vendor invoice removal ui builder.
+/// </summary>
+public class ICS_ExpenseVendInvoiceRemovalUIBuilder extends SysOperationAutomaticUIBuilder
+{
+    DialogField                             deleteRecord;
+    DialogField                             flowType;
+    DialogField                             contactWorker;
+    ICS_ExpenseVendInvoiceRemovalContract   contract;
+
+}
+]]></Declaration>
+		<Methods>
+			<Method>
+				<Name>postBuild</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Post build method implementation.
+    /// </summary>
+    public void postBuild()
+    {
+        super();
+
+        contract = this.dataContractObject();
+
+        deleteRecord    = this.bindInfo().getDialogField(contract, methodStr(ICS_ExpenseVendInvoiceRemovalContract, parmDeleteRecord));
+        flowType        = this.bindInfo().getDialogField(contract, methodStr(ICS_ExpenseVendInvoiceRemovalContract, parmFlowType));
+        contactWorker   = this.bindInfo().getDialogField(contract, methodStr(ICS_ExpenseVendInvoiceRemovalContract, parmHcmWorkerRecId));
+
+        flowType.control().allowEdit(!deleteRecord.value());
+        contactWorker.control().allowEdit(!deleteRecord.value());
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>postRun</Name>
+				<Source><![CDATA[
+    /// <summary>   
+    /// Post run method implementation.
+    /// </summary>
+    public void postRun()
+    {
+        super();
+
+        deleteRecord.registerOverrideMethod(methodStr(FormCheckBoxControl, modified),
+                                            methodStr(ICS_ExpenseVendInvoiceRemovalUIBuilder, modifiedDeleteRecord),
+                                            this);
+      
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>modifiedDeleteRecord</Name>
+				<Source><![CDATA[
+    private boolean modifiedDeleteRecord(FormCheckBoxControl _formControl)
+    {
+        boolean modified;
+
+        modified = _formControl.modified();
+
+        flowType.enabled(!deleteRecord.value());
+        contactWorker.enabled(!deleteRecord.value());
+
+        return modified;
+    }
+
+]]></Source>
+			</Method>
+		</Methods>
+	</SourceCode>
+</AxClass>

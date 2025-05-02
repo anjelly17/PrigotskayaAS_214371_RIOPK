@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxClass xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseVendInvoiceRemovalContract</Name>
+	<SourceCode>
+		<Declaration><![CDATA[
+/// <summary>
+/// Expense vendor invoice approval contract.
+/// </summary>
+[
+    DataContract,
+    SysOperationContractProcessingAttribute(classStr(ICS_ExpenseVendInvoiceRemovalUIBuilder))
+]
+public class ICS_ExpenseVendInvoiceRemovalContract 
+{
+    private container           recordCon;
+    private ICS_ExpenseFlowType flowType;
+    private boolean             deleteRecord;
+    private str                 packedQuery;
+    private boolean             runByQuery;
+    private HcmWorkerRecId      hcmWorkerRecId;
+
+}
+]]></Declaration>
+		<Methods>
+			<Method>
+				<Name>parmRecordCon</Name>
+				<Source><![CDATA[
+    [DataMemberAttribute, SysOperationControlVisibilityAttribute(false)]
+    public container parmRecordCon(container _value = recordCon)
+    {
+        recordCon = _value;
+
+        return recordCon;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmFlowType</Name>
+				<Source><![CDATA[
+    [DataMemberAttribute, SysOperationControlVisibilityAttribute(true)]
+    public ICS_ExpenseFlowType parmFlowType(ICS_ExpenseFlowType _value = flowType)
+    {
+        flowType = _value;
+
+        return flowType;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmDeleteRecord</Name>
+				<Source><![CDATA[
+    [DataMemberAttribute, 
+     SysOperationControlVisibilityAttribute(true),
+     SysOperationLabel("@ICS:ParmDeleteRecord"),
+     SysOperationHelpText("@ICS:ParmDeleteRecordHelpTxt")]
+    public boolean parmDeleteRecord(boolean _value = deleteRecord)
+    {
+        deleteRecord = _value;
+
+        return deleteRecord;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmPackedQuery</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Retrieves the <c>ICS_ExpenseVendInvoiceRemovalQuery</c> query as a string.
+    /// </summary>
+    /// <param name="_packedQuery">
+    /// A string that contains a packed <c>ICS_ExpenseVendInvoiceRemovalQuery</c> query.
+    /// </param>
+    /// <returns>
+    /// A string that contains a packed <c>ICS_ExpenseVendInvoiceRemovalQuery</c> query.
+    /// </returns>
+    [DataMemberAttribute,
+        AifQueryTypeAttribute('_packedQuery', queryStr(ICS_ExpenseVendInvoiceRemovalQuery))
+    ]
+    public str parmPackedQuery(str _packedQuery = packedQuery)
+    {
+        packedQuery = _packedQuery;
+        return packedQuery;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmRunByQuery</Name>
+				<Source><![CDATA[
+    [DataMemberAttribute, SysOperationControlVisibilityAttribute(false)]
+    public boolean parmRunByQuery(boolean _value = runByQuery)
+    {
+        runByQuery = _value;
+
+        return runByQuery;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmHcmWorkerRecId</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Parm person record id.
+    /// </summary>
+    /// <param name = "_value">Person record id value.</param>
+    /// <returns>Person record id value.</returns>
+    [DataMember,
+     SysOperationLabel("@ICS:MainContactWorkerNewSync"),
+     SysOperationHelpText("@ICS:MainContactWorkerNewSyncHelpText")]
+    public HcmWorkerRecId parmHcmWorkerRecId(HcmWorkerRecId _value = hcmWorkerRecId)
+    {
+        hcmWorkerRecId = _value;
+
+        return hcmWorkerRecId;
+    }
+
+]]></Source>
+			</Method>
+		</Methods>
+	</SourceCode>
+</AxClass>

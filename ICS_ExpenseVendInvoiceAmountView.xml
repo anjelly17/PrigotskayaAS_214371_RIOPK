@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxView xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseVendInvoiceAmountView</Name>
+	<SourceCode>
+		<Declaration><![CDATA[
+public class ICS_ExpenseVendInvoiceAmountView extends common
+{
+}
+]]></Declaration>
+		<Methods />
+	</SourceCode>
+	<DeveloperDocumentation>@ICS:ExpenseVendInvoiceViewDevDoc</DeveloperDocumentation>
+	<Label>@ICS:ExpenseVendInvoiceAmountView</Label>
+	<TitleField1>SequenceNum</TitleField1>
+	<TitleField2>AmountOrig</TitleField2>
+	<FieldGroups>
+		<AxTableFieldGroup>
+			<Name>AutoReport</Name>
+			<Fields />
+		</AxTableFieldGroup>
+		<AxTableFieldGroup>
+			<Name>AutoLookup</Name>
+			<Fields />
+		</AxTableFieldGroup>
+		<AxTableFieldGroup>
+			<Name>AutoIdentification</Name>
+			<AutoPopulate>Yes</AutoPopulate>
+			<Fields />
+		</AxTableFieldGroup>
+		<AxTableFieldGroup>
+			<Name>AutoSummary</Name>
+			<Fields />
+		</AxTableFieldGroup>
+		<AxTableFieldGroup>
+			<Name>AutoBrowse</Name>
+			<Fields />
+		</AxTableFieldGroup>
+	</FieldGroups>
+	<Fields>
+		<AxViewField xmlns=""
+			i:type="AxViewFieldBound">
+			<Name>AmountAI</Name>
+			<HelpText>@ICS:AmountAIHelpTxt</HelpText>
+			<Label>@ICS:AmountAI</Label>
+			<Aggregation>Sum</Aggregation>
+			<DataField>AmountAI</DataField>
+			<DataSource>ICS_ExpenseVendInvoiceLine</DataSource>
+		</AxViewField>
+		<AxViewField xmlns=""
+			i:type="AxViewFieldBound">
+			<Name>AmountOrig</Name>
+			<HelpText>@ICS:VendInvoiceAmountHelpTxt</HelpText>
+			<Label>@SYS98362</Label>
+			<Aggregation>Sum</Aggregation>
+			<DataField>AmountOrig</DataField>
+			<DataSource>ICS_ExpenseVendInvoiceLine</DataSource>
+		</AxViewField>
+		<AxViewField xmlns=""
+			i:type="AxViewFieldBound">
+			<Name>Amount</Name>
+			<HelpText>@ICS:VendInvoiceAmountHelpTxt</HelpText>
+			<Aggregation>Sum</Aggregation>
+			<DataField>Amount</DataField>
+			<DataSource>ICS_ExpenseVendInvoiceLine</DataSource>
+		</AxViewField>
+		<AxViewField xmlns=""
+			i:type="AxViewFieldBound">
+			<Name>ExpenseVendInvoice</Name>
+			<DataField>ExpenseVendInvoice</DataField>
+			<DataSource>ICS_ExpenseVendInvoiceLine</DataSource>
+		</AxViewField>
+	</Fields>
+	<Indexes />
+	<Mappings />
+	<Relations />
+	<StateMachines />
+	<ViewMetadata>
+		<Name>Metadata</Name>
+		<SourceCode>
+			<Methods />
+		</SourceCode>
+		<DataSources>
+			<AxQuerySimpleRootDataSource>
+				<Name>ICS_ExpenseVendInvoiceLine</Name>
+				<DynamicFields>Yes</DynamicFields>
+				<Table>ICS_ExpenseVendInvoiceLine</Table>
+				<DataSources />
+				<DerivedDataSources />
+				<Fields />
+				<Ranges />
+				<GroupBy>
+					<AxQuerySimpleGroupByField>
+						<Name>ExpenseVendInvoice</Name>
+						<DataSource>ICS_ExpenseVendInvoiceLine</DataSource>
+						<Field>ExpenseVendInvoice</Field>
+					</AxQuerySimpleGroupByField>
+				</GroupBy>
+				<Having />
+				<OrderBy />
+			</AxQuerySimpleRootDataSource>
+		</DataSources>
+	</ViewMetadata>
+</AxView>

@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxClass xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseVendInvoiceSyncService</Name>
+	<SourceCode>
+		<Declaration><![CDATA[
+/// <summary>
+/// Expense vendor invoice synchronize service.
+/// </summary>
+public class ICS_ExpenseVendInvoiceSyncService extends SysOperationServiceBase
+{
+}
+]]></Declaration>
+		<Methods>
+			<Method>
+				<Name>process</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Entry point of service class.
+    /// </summary>
+    /// <param name = "_contract">Contract class instance</param>
+    protected void process(ICS_ExpenseVendInvoiceSyncContract _contract)
+    {
+        Query                       query       = new Query(SysOperationHelper::base64Decode(_contract.parmPackedQuery()));
+        QueryRun                    queryRun    = new QueryRun(query);
+        ICS_ExpenseVendInvoice      expenseVendInvoice;
+        ICS_ExpenseVendInvoiceLine  expenseVendInvoiceLine;
+        System.ArgumentException    ex;
+
+        while (queryRun.next())
+        {
+            if (!queryRun.changed(tableNum(ICS_ExpenseVendInvoice)))
+            {
+                continue;
+            }
+
+            expenseVendInvoice = ICS_ExpenseVendInvoice::findByRecId(queryRun.get(tableNum(ICS_ExpenseVendInvoice)).RecId, true);
+
+            if (expenseVendInvoice.LedgerJournalTableRecId != nullValueBaseType(Types::Int64))
+            {
+                info(strFmt("@ICS:CheckRelatedJournal", expenseVendInvoice.InvoiceId));
+                continue;
+            }
+
+            try
+            {
+                ttsbegin;
+
+                if (_contract.parmContactWorkerSync())
+                {
+                    expenseVendInvoice.modifiedField(fieldNum(ICS_ExpenseVendInvoice, SuppAcc));  
+                }
+
+                if (_contract.parmTaxAmountSync())
+                {
+                    expenseVendInvoice.recalcAmount();
+                }
+
+                if (_contract.parmHcmWorkerRecId() != nullValueBaseType(Types::Int64))
+                {
+                    expenseVendInvoice.MainContactWorker = _contract.parmHcmWorkerRecId();
+                }
+
+                expenseVendInvoice.SyncStatus = ICS_ExpenseVendInvoiceSyncStatus::Synchronized;
+
+                if (!expenseVendInvoice.FTP_Barcode)
+                {
+                    expenseVendInvoice.initFTP_BarcodeValue();
+                }
+                
+                if (!expenseVendInvoice.validateWrite())
+                {
+                    throw error("@SYS21628");
+                }
+
+                expenseVendInvoice.update();
+
+                if (_contract.parmPreviewSync()
+                 && expenseVendInvoice.PathPDF != nullValueBaseType(Types::String))
+                {
+                    ICS_VendAttachmentHelper::attachPDFFile(expenseVendInvoice, expenseVendInvoice.PathPDF);
+                }
+
+                if (_contract.parmDimensionSync())
+                {
+                    select firstonly forUpdate expenseVendInvoiceLine
+                    where expenseVendInvoiceLine.ExpenseVendInvoice == expenseVendInvoice.RecId;
+
+                    expenseVendInvoiceLine.initDefaultDimensions(expenseVendInvoice.MainContactWorker);
+
+                    if (!expenseVendInvoiceLine.validateWrite())
+                    {
+                        throw error("@SYS21628");
+                    }
+
+                    expenseVendInvoiceLine.update();
+                }
+
+                info(strFmt("@ICS:InvoiceUpdSuccess", expenseVendInvoice.InvoiceId));
+
+                ttscommit;
+            }
+            catch(ex)
+            {
+                ttsbegin;
+
+                expenseVendInvoice.reread();
+                expenseVendInvoice.selectForUpdate();
+
+                expenseVendInvoice.SyncStatus = ICS_ExpenseVendInvoiceSyncStatus::Error;
+                expenseVendInvoice.update();
+                    
+                ttscommit;
+                info(strFmt("@ICS:InvoiceUpdError", expenseVendInvoice.InvoiceId));
+                info(ex.Message);
+            }            
+        }
+    }
+
+]]></Source>
+			</Method>
+		</Methods>
+	</SourceCode>
+</AxClass>

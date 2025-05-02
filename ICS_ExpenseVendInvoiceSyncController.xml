@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxClass xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseVendInvoiceSyncController</Name>
+	<SourceCode>
+		<Declaration><![CDATA[
+/// <summary>
+/// Expense vendor invoice synchronize controller.
+/// </summary>
+public class ICS_ExpenseVendInvoiceSyncController extends SysOperationServiceController
+{
+}
+]]></Declaration>
+		<Methods>
+			<Method>
+				<Name>new</Name>
+				<Source><![CDATA[
+    protected void new()
+    {
+        super(classStr(ICS_ExpenseVendInvoiceSyncService),
+            methodStr(ICS_ExpenseVendInvoiceSyncService, process),
+            SysOperationExecutionMode::Synchronous);
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>main</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Entry point of controller class.
+    /// </summary>
+    /// <param name = "_args">An <c>Args</c> instance.</param>
+    public static void main(Args _args)
+    {
+        try
+        {
+            ICS_ExpenseVendInvoiceSyncController controller = new ICS_ExpenseVendInvoiceSyncController();
+            
+            controller.showBatchTab(true);
+            controller.parmArgs(_args);
+            controller.initQuery(_args);
+            controller.parmShowDialog(true);
+            controller.parmLoadFromSysLastValue(false);
+
+            controller.startOperation();
+        }
+        catch (Exception::Error)
+        {
+            exceptionTextFallThrough();
+        }
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>initQuery</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Initializes vendor invoice record id.
+    /// </summary>
+    /// <param name = "_args">An <c>Args</c> instance..</param>
+    public void initQuery(Args _args)
+    {
+        if (_args
+         && _args.dataset() == tableNum(ICS_ExpenseVendInvoice))
+        {
+            Query                               query       = new Query(queryStr(ICS_ExpenseVendInvoiceSyncQuery));
+            QueryBuildDataSource                qbds        = query.dataSourceTable(tableNum(ICS_ExpenseVendInvoice));
+            ICS_ExpenseVendInvoiceSyncContract  contract    = this.getDataContractObject();
+            container                           recordCon;
+
+            if (_args.caller() is FormRun)
+            {
+                ICS_ExpenseVendInvoice  expenseInvoice;
+                MultiSelectionHelper    multiselectionHelper = MultiSelectionHelper::createFromCaller(_args.caller());
+                        
+                expenseInvoice = multiselectionHelper.getFirst();
+
+                while (expenseInvoice)
+                {
+                    recordCon += expenseInvoice.RecId;
+            
+                    expenseInvoice = multiselectionHelper.getNext();
+                }
+            }
+            else
+            {
+                recordCon += _args.record().RecId;
+            }
+
+            qbds.addRange(fieldNum(ICS_ExpenseVendInvoice, RecId)).value(con2Str(recordCon));
+            
+            contract.parmPackedQuery(SysOperationHelper::base64Encode(query.pack()));
+        }
+    }
+
+]]></Source>
+			</Method>
+		</Methods>
+	</SourceCode>
+</AxClass>

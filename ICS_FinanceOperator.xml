@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxSecurityDuty xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_FinanceOperator</Name>
+	<Label>@ICS:FinanceOperator</Label>
+	<Privileges>
+		<AxSecurityPrivilegeReference>
+			<Name>ICS_ExpenseVendInvoiceMaintain</Name>
+		</AxSecurityPrivilegeReference>
+		<AxSecurityPrivilegeReference>
+			<Name>ICS_ExpenseVendInvoiceBudgetApproval</Name>
+		</AxSecurityPrivilegeReference>
+		<AxSecurityPrivilegeReference>
+			<Name>ICS_ExpenseVendInvoiceExpenseApproval</Name>
+		</AxSecurityPrivilegeReference>
+		<AxSecurityPrivilegeReference>
+			<Name>ICS_ExpenseVendInvoiceLedgerJournalGenerate</Name>
+		</AxSecurityPrivilegeReference>
+		<AxSecurityPrivilegeReference>
+			<Name>ICS_ExpenseVendInvoiceLedgerJournalPost</Name>
+		</AxSecurityPrivilegeReference>
+		<AxSecurityPrivilegeReference>
+			<Name>ICS_ExpenseVendInvoiceLineSplit</Name>
+		</AxSecurityPrivilegeReference>
+		<AxSecurityPrivilegeReference>
+			<Name>ICS_ExpenseVendInvoiceView</Name>
+		</AxSecurityPrivilegeReference>
+		<AxSecurityPrivilegeReference>
+			<Name>ICS_ExpenseVendInvoiceRemoval</Name>
+		</AxSecurityPrivilegeReference>
+		<AxSecurityPrivilegeReference>
+			<Name>ICS_ExpenseVendInvoiceSync</Name>
+		</AxSecurityPrivilegeReference>
+	</Privileges>
+</AxSecurityDuty>

@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxClass xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseVendInvoiceLineSplitUIBuilder</Name>
+	<SourceCode>
+		<Declaration><![CDATA[
+/// <summary>
+/// Expense vendor invoice split ui builder.
+/// </summary>
+public class ICS_ExpenseVendInvoiceLineSplitUIBuilder extends SysOperationAutomaticUIBuilder
+{
+    DialogField                             departmentField;
+    DialogField                             costCenterField;
+    DialogField                             businessUnitField;
+    ICS_ExpenseVendInvoiceLineSplitContract contract;
+
+}
+]]></Declaration>
+		<Methods>
+			<Method>
+				<Name>postBuild</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Post build method implementation.
+    /// </summary>
+    public void postBuild()
+    {
+        super();
+
+        contract = this.dataContractObject();
+
+        departmentField = this.bindInfo().getDialogField(contract, methodStr(ICS_ExpenseVendInvoiceLineSplitContract, parmDepartment));
+        costCenterField = this.bindInfo().getDialogField(contract, methodStr(ICS_ExpenseVendInvoiceLineSplitContract, parmCostCenter));
+        businessUnitField = this.bindInfo().getDialogField(contract, methodStr(ICS_ExpenseVendInvoiceLineSplitContract, parmBusinessUnit));
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>postRun</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Post run method implementation.
+    /// </summary>
+    public void postRun()
+    {
+        super();
+
+        departmentField.registerOverrideMethod(methodStr(FormStringControl, lookup),
+                                                methodStr(ICS_ExpenseVendInvoiceLineSplitUIBuilder, lookupDepartment),
+                                                this);
+        costCenterField.registerOverrideMethod(methodStr(FormStringControl, lookup),
+                                                methodStr(ICS_ExpenseVendInvoiceLineSplitUIBuilder, lookupCostCenter),
+                                                this);
+        businessUnitField.registerOverrideMethod(methodStr(FormStringControl, lookup),
+                                                methodStr(ICS_ExpenseVendInvoiceLineSplitUIBuilder, lookupBusinessUnit),
+                                                this);
+
+        departmentField.registerOverrideMethod(methodStr(FormStringControl, modified),
+                                                methodStr(ICS_ExpenseVendInvoiceLineSplitUIBuilder, modifiedDepartment),
+                                                this);
+        costCenterField.registerOverrideMethod(methodStr(FormStringControl, modified),
+                                                methodStr(ICS_ExpenseVendInvoiceLineSplitUIBuilder, modifiedCostCenter),
+                                                this);
+        businessUnitField.registerOverrideMethod(methodStr(FormStringControl, modified),
+                                                methodStr(ICS_ExpenseVendInvoiceLineSplitUIBuilder, modifiedBusinessUnit),
+                                                this);
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>lookupDepartment</Name>
+				<Source><![CDATA[
+    private void lookupDepartment(FormControl _formControl)
+    {
+        ICS_ExpenseVendInvoiceLine::lookupDepartment(_formControl);
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>lookupCostCenter</Name>
+				<Source><![CDATA[
+    private void lookupCostCenter(FormControl _formControl)
+    {
+        ICS_ExpenseVendInvoiceLine::lookupCostCenter(_formControl);
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>lookupBusinessUnit</Name>
+				<Source><![CDATA[
+    private void lookupBusinessUnit(FormControl _formControl)
+    {
+        ICS_ExpenseVendInvoiceLine::lookupBusinessUnit(_formControl);
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>modifiedDepartment</Name>
+				<Source><![CDATA[
+    private boolean modifiedDepartment(FormStringControl _formControl)
+    {
+        ICS_ExpenseVendInvoiceLine  expenseVendInvoiceLine;
+        boolean                     modified;
+
+        modified = _formControl.modified();
+
+        expenseVendInvoiceLine.Department = _formControl.text();
+
+        modified = modified && expenseVendInvoiceLine.validateField(fieldNum(ICS_ExpenseVendInvoiceLine, Department));
+
+        return modified;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>modifiedCostCenter</Name>
+				<Source><![CDATA[
+    private boolean modifiedCostCenter(FormStringControl _formControl)
+    {
+        ICS_ExpenseVendInvoiceLine  expenseVendInvoiceLine;
+        boolean                     modified;
+
+        modified = _formControl.modified();
+
+        expenseVendInvoiceLine.CostCenter = _formControl.text();
+
+        modified = modified && expenseVendInvoiceLine.validateField(fieldNum(ICS_ExpenseVendInvoiceLine, CostCenter));
+
+        return modified;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>modifiedBusinessUnit</Name>
+				<Source><![CDATA[
+    private boolean modifiedBusinessUnit(FormStringControl _formControl)
+    {
+        ICS_ExpenseVendInvoiceLine  expenseVendInvoiceLine;
+        boolean                     modified;
+
+        modified = _formControl.modified();
+
+        expenseVendInvoiceLine.BusinessUnit = _formControl.text();
+
+        modified = modified && expenseVendInvoiceLine.validateField(fieldNum(ICS_ExpenseVendInvoiceLine, BusinessUnit));
+
+        return modified;
+    }
+
+]]></Source>
+			</Method>
+		</Methods>
+	</SourceCode>
+</AxClass>

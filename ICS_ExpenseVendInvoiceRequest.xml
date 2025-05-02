@@ -1,0 +1,349 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxClass xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseVendInvoiceRequest</Name>
+	<SourceCode>
+		<Declaration><![CDATA[
+/// <summary>
+/// Expense vendor invoice request class
+/// </summary>
+[DataContractAttribute]
+public class ICS_ExpenseVendInvoiceRequest
+{
+    private InvoiceId       invoiceId;
+    private InvoiceDate     invoiceDate;
+    private DocumentDate    documentDate;
+    private Amount          amount;
+    private CurrencyCode    currencyCode;
+    private VATNum          vatNum;
+    private FiscalCode      fiscalCode;
+    private NoYesId         invoiceSDI;
+    private str             pathXML;
+    private str             pathPDF;
+    private VendName        SupplierName;
+    private RefRecId        invoiceRecId;
+    private str             receivingSociety;
+    private str             offsetAccount;
+    private str             barcode;
+    private str             pathPreview;
+
+    private Amount          amountAI;
+    private str             previewAI;
+    private str             dirPathAI;
+    private ICS_ExpenseFlowType flowType;
+ 
+}
+]]></Declaration>
+		<Methods>
+			<Method>
+				<Name>parmInvoiceId</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Invoice Id.
+    /// </summary>
+    /// <param name = "_value"> Invoice Id.</param>
+    /// <returns> Invoice Id.</returns>
+    [DataMember("InvoiceId")]
+    public str parmInvoiceId(InvoiceId _value = invoiceId)
+    {
+        if (!prmIsDefault(_value))
+        {
+            invoiceId = _value;
+        }
+        return invoiceId;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmInvoiceDate</Name>
+				<Source><![CDATA[
+    [DataMember("InvoiceDate")]
+    public InvoiceDate parmInvoiceDate(InvoiceDate _value = invoiceDate)
+    {
+        if (!prmIsDefault(_value))
+        {
+            invoiceDate = _value;
+        }
+        return invoiceDate;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmDocumentDate</Name>
+				<Source><![CDATA[
+    [DataMember("DocumentDate")]
+    public DocumentDate parmDocumentDate(DocumentDate _value = documentDate)
+    {
+        if (!prmIsDefault(_value))
+        {
+            documentDate = _value;
+        }
+        return documentDate;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmAmountOrig</Name>
+				<Source><![CDATA[
+    [DataMember("Amount")]
+    public Amount parmAmountOrig(Amount _value = amount)
+    {
+        if (!prmIsDefault(_value))
+        {
+            amount = _value;
+        }
+        return amount;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmCurrencyCode</Name>
+				<Source><![CDATA[
+    [DataMember("CurrencyCode")]
+    public CurrencyCode parmCurrencyCode(CurrencyCode _value = currencyCode)
+    {
+        if (!prmIsDefault(_value))
+        {
+            currencyCode = _value;
+        }
+        return currencyCode;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmVATNum</Name>
+				<Source><![CDATA[
+    [DataMember("VATNum")]
+    public VATNum parmVATNum(VATNum _value = vatNum)
+    {
+        if (!prmIsDefault(_value))
+        {
+            vatNum = _value;
+        }
+        return vatNum;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmFiscalCode</Name>
+				<Source><![CDATA[
+    [DataMember("FiscalCode")]
+    public FiscalCode parmFiscalCode(FiscalCode _value = fiscalCode)
+    {
+        if (!prmIsDefault(_value))
+        {
+            fiscalCode = _value;
+        }
+        return fiscalCode;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmInvoiceSDI</Name>
+				<Source><![CDATA[
+    [DataMember("InvoiceSDI")]
+    public NoYesId parmInvoiceSDI(NoYesId _value = invoiceSDI)
+    {
+        if (!prmIsDefault(_value))
+        {
+            invoiceSDI = _value;
+        }
+        return invoiceSDI;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmPathXML</Name>
+				<Source><![CDATA[
+    [DataMember("PathXML")]
+    public str parmPathXML(str _value = pathXML)
+    {
+        if (!prmIsDefault(_value))
+        {
+            pathXML = _value;
+        }
+        return pathXML;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmPathPDF</Name>
+				<Source><![CDATA[
+    [DataMember("PathPDF")]
+    public str parmPathPDF(str _value = pathPDF)
+    {
+        if (!prmIsDefault(_value))
+        {
+            pathPDF = _value;
+        }
+        return pathPDF;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmInvoiceRecId</Name>
+				<Source><![CDATA[
+    [DataMember("InvoiceRecId")]
+    public RefRecId parmInvoiceRecId(RefRecId _value = invoiceRecId)
+    {
+        if (!prmIsDefault(_value))
+        {
+            invoiceRecId = _value;
+        }
+        return invoiceRecId;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmReceivingSociety</Name>
+				<Source><![CDATA[
+    [DataMember("ReceivingSociety")]
+    public str parmReceivingSociety(str _value = receivingSociety)
+    {
+        if (!prmIsDefault(_value))
+        {
+            receivingSociety = _value;
+        }
+        return receivingSociety;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmSupplierName</Name>
+				<Source><![CDATA[
+    [DataMember("SupplierName")]
+    public VendName parmSupplierName(VendName _value = SupplierName)
+    {
+        if (!prmIsDefault(_value))
+        {
+            SupplierName = _value;
+        }
+        return SupplierName;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmOffsetAccount</Name>
+				<Source><![CDATA[
+    [DataMember("OffsetAccount")]
+    public str parmOffsetAccount(str _value = offsetAccount)
+    {
+        if (!prmIsDefault(_value))
+        {
+            offsetAccount = _value;
+        }
+        return offsetAccount;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmBarcode</Name>
+				<Source><![CDATA[
+    [DataMember("FTP_Barcode")]
+    public str parmBarcode(str _value = barcode)
+    {
+        if (!prmIsDefault(_value))
+        {
+            barcode = _value;
+        }
+        return barcode;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmPathPreview</Name>
+				<Source><![CDATA[
+    [DataMember("PathPreview")]
+    public str parmPathPreview(str _value = pathPreview)
+    {
+        if (!prmIsDefault(_value))
+        {
+            pathPreview = _value;
+        }
+        return pathPreview;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmFlowType</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Flow type.
+    /// </summary>
+    /// <param name = "_value"> Invoice Id.</param>
+    /// <returns> Flow type..</returns>
+    [DataMember("FlowType")]
+    public ICS_ExpenseFlowType parmFlowType(ICS_ExpenseFlowType _value = flowType)
+    {
+        if (!prmIsDefault(_value))
+        {
+            flowType = _value;
+        }
+        return flowType;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmAmountAI</Name>
+				<Source><![CDATA[
+    [DataMember("AmountAI")]
+    public Amount parmAmountAI(Amount _value = amountAI)
+    {
+        if (!prmIsDefault(_value))
+        {
+            amountAI = _value;
+        }
+        return amountAI;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmAIPreview</Name>
+				<Source><![CDATA[
+    [DataMember("AIPreview")]
+    public str parmAIPreview(str _value = previewAI)
+    {
+        if (!prmIsDefault(_value))
+        {
+            previewAI = _value;
+        }
+        return previewAI;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmDirPathAI</Name>
+				<Source><![CDATA[
+    [DataMember("DirPathAI")]
+    public str parmDirPathAI(str _value = dirPathAI)
+    {
+        if (!prmIsDefault(_value))
+        {
+            dirPathAI = _value;
+        }
+        return dirPathAI;
+    }
+
+]]></Source>
+			</Method>
+		</Methods>
+	</SourceCode>
+</AxClass>

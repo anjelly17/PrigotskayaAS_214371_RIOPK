@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxClass xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseVendInvoiceLedgerJournalGeneratePostContract</Name>
+	<SourceCode>
+		<Declaration><![CDATA[
+/// <summary>
+/// General ledger journal generator contract.
+/// </summary>
+[
+    DataContract,
+    SysOperationContractProcessingAttribute(classStr(ICS_ExpenseVendInvoiceLedgerJournalGeneratePostUIBuilder))
+]
+public class ICS_ExpenseVendInvoiceLedgerJournalGeneratePostContract implements SysOperationValidatable
+{
+    DirPartyName        personName;
+    RecId               expenseVendInvoiceRecId;
+    RecId               dirPersonRecId;
+
+}
+]]></Declaration>
+		<Methods>
+			<Method>
+				<Name>parmPersonName</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Parm person name.
+    /// </summary>
+    /// <param name = "_value">Person name value.</param>
+    /// <returns>Person name value.</returns>
+    [DataMember,
+     SysOperationLabel("@SYS35880"),
+     SysOperationHelpText("@ICS:EmployeeHelp")]
+    public DirPartyName parmPersonName(DirPartyName _value = personName)
+    {
+        personName = _value;
+
+        return personName;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmVendInvoiceRecId</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Parm expense vendor invoice record id.
+    /// </summary>
+    /// <param name = "_value">Expense vendor invoice record id value.</param>
+    /// <returns>Expense vendor invoice record id value.</returns>
+    public RecId parmVendInvoiceRecId(RecId _value = expenseVendInvoiceRecId)
+    {
+        expenseVendInvoiceRecId = _value;
+
+        return expenseVendInvoiceRecId;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>parmDirPersonRecId</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Parm person record id.
+    /// </summary>
+    /// <param name = "_value">Person record id value.</param>
+    /// <returns>Person record id value.</returns>
+    public RecId parmDirPersonRecId(RecId _value = dirPersonRecId)
+    {
+        dirPersonRecId = _value;
+
+        return dirPersonRecId;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>validate</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Validates input parameters
+    /// </summary>
+    /// <returns>True if valid; otherwise - false</returns>
+    public boolean validate()
+    {
+        boolean ret = true;
+
+        if (!HcmWorker::findByPerson(dirPersonRecId).RecId)
+        {
+            ret = checkFailed("@ICS:EmployeeJournalGenerateValidationError");
+        }
+
+        ICS_ExpenseVendInvoice  expenseVendInvoice  = ICS_ExpenseVendInvoice::findByRecId(expenseVendInvoiceRecId);
+        VendGroup vendGroup = VendGroup::find(VendTable::find(expenseVendInvoice.SuppAcc).VendGroup);
+
+        if (expenseVendInvoice.LedgerJournalNameId      == nullValueBaseType(Types::String)
+         && vendGroup.ICS_ExpenseLedgerJournalNameId    == nullValueBaseType(Types::String))
+        {
+            ret = checkFailed(strfmt("@ICS:JournalNameSetupError", vendGroup.Name));
+        }
+
+        if (expenseVendInvoice.OffsetLedgerDimension == 0)
+        {
+            ret = checkFailed("@ICS:JournalEmptyOffsetAccountError");
+        }
+
+        return ret;
+    }
+
+]]></Source>
+			</Method>
+		</Methods>
+	</SourceCode>
+</AxClass>

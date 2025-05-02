@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxClass xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseVendInvoiceDimSyncService</Name>
+	<SourceCode>
+		<Declaration><![CDATA[
+/// <summary>
+/// Expense vend invoice default dimension synchronize service.
+/// </summary>
+public class ICS_ExpenseVendInvoiceDimSyncService extends SysOperationServiceBase
+{
+}
+]]></Declaration>
+		<Methods>
+			<Method>
+				<Name>process</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Process operation. Updates defailt dimensions on lines
+    /// </summary>
+    /// <param name = "_contract">Contract class</param>
+    public void process(ICS_ExpenseVendInvoiceDimSyncContract _contract)
+    {
+        System.Exception ex;
+        #OCCRetryCount
+ 
+        try
+        {
+            ttsbegin;
+            this.processOperation(_contract);
+            ttscommit;
+
+            Info("@ICS:ExpenseVendInvoiceDimSyncUpdInfo");
+        }
+ 
+        catch (Exception::Deadlock)
+        {
+            retry;
+        }
+ 
+        catch (Exception::UpdateConflict)
+        {
+            if (appl.ttsLevel() == 0)
+            {
+                if (xSession::currentRetryCount() >= #RetryNum)
+                {
+                    throw Exception::UpdateConflictNotRecovered;
+                }
+                else
+                {
+                    retry;
+                }
+            }
+            else
+            {
+                throw Exception::UpdateConflict;
+            }
+        }
+ 
+        catch (Exception::Error)
+        {
+            error("@SYS21628");
+            retry;
+        }
+ 
+        catch (Exception::CLRError)
+        {
+            ex = ClrInterop::getLastException();
+ 
+            if (ex != null)
+            {
+                ex = ex.get_InnerException();
+                if (ex != null)
+                {
+                    error("@SYS21628");
+                    error("@SYS21628");
+                }
+            }
+ 
+            retry;
+        }
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>processOperation</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Process operation. Updates defailt dimensions on lines
+    /// </summary>
+    /// <param name = "_contract">Contract class</param>
+    protected void processOperation(ICS_ExpenseVendInvoiceDimSyncContract _contract)
+    {
+        VendTable                   vendTable;
+        ICS_ExpenseVendInvoice      invoice;
+        ICS_ExpenseVendInvoiceLine  invoiceLine;
+        ICS_ExpenseVendInvoiceLine  invoiceLineNewDim;
+        QueryRun                    queryRun;
+        Set                         setInvoice = new Set(Types::Int64);
+        Query                       query = _contract.getQuery();
+
+        this.addQueryRanges(query);
+
+        queryRun = new QueryRun(query);
+
+        while (queryRun.next())
+        {
+            invoiceLine = queryRun.get(tableNum(ICS_ExpenseVendInvoiceLine));
+            invoice     = queryRun.get(tableNum(ICS_ExpenseVendInvoice));
+            vendTable   = queryRun.get(tableNum(VendTable));
+
+            if (vendTable.MainContactWorker != invoice.MainContactWorker)
+            {
+                if (!setInvoice.in(invoice.RecId))
+                {
+                    invoice.selectForUpdate(true);
+                    invoice.MainContactWorker = vendTable.MainContactWorker;
+
+                    if (!invoice.validateWrite())
+                    {
+                        throw error("@SYS21628");
+                    }
+
+                    invoice.update();
+
+                    setInvoice.add(invoice.RecId);
+                }
+            }
+            else
+            {
+                invoiceLineNewDim.initDefaultDimensions(invoice.MainContactWorker);
+
+                if ( invoiceLine.CostCenter     != invoiceLineNewDim.CostCenter
+                 ||  invoiceLine.Department     != invoiceLineNewDim.Department
+                 ||  invoiceLine.BusinessUnit   != invoiceLineNewDim.BusinessUnit)
+                {
+                    invoiceLine.selectForUpdate(true);
+                    invoiceLine.CostCenter      = invoiceLineNewDim.CostCenter;
+                    invoiceLine.Department      = invoiceLineNewDim.Department;
+                    invoiceLine.BusinessUnit    = invoiceLineNewDim.BusinessUnit;
+
+                    if (!invoiceLine.validateWrite())
+                    {
+                        throw error("@SYS21628");
+                    }
+
+                    invoiceLine.update();
+
+                    if (ICS_ExpenseVendInvoiceLine::existMergeLines(invoiceLine))
+                    {
+                        ICS_ExpenseVendInvoiceLine::mergeLines(invoiceLine);
+
+                        invoiceLine.delete();
+                    }                    
+                }
+            }
+        }
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>addQueryRanges</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Adds additional ranges to query
+    /// </summary>
+    /// <param name = "_query">Query to modify</param>
+    protected void addQueryRanges(Query _query)
+    {
+        QueryBuildDataSource    qbdsInvoice;
+        QueryBuildDataSource    qbdsInvoiceLine;
+
+        qbdsInvoice = _query.dataSourceTable(tableNum(ICS_ExpenseVendInvoice));
+        SysQuery::findOrCreateRange(qbdsInvoice, fieldNum(ICS_ExpenseVendInvoice, LedgerJournalTableRecId)).value(SysQuery::valueEmptyString());
+
+        qbdsInvoiceLine = _query.dataSourceTable(tableNum(ICS_ExpenseVendInvoiceLine));
+        SysQuery::findOrCreateRange(qbdsInvoiceLine, fieldNum(ICS_ExpenseVendInvoiceLine, ParentLineRecId)).value(SysQuery::valueEmptyString());
+    }
+
+]]></Source>
+			</Method>
+		</Methods>
+	</SourceCode>
+</AxClass>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxSecurityDuty xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseApprover</Name>
+	<Label>@ICS:ExpenseApprover</Label>
+	<Privileges>
+		<AxSecurityPrivilegeReference>
+			<Name>ICS_ExpenseVendInvoiceMaintain</Name>
+		</AxSecurityPrivilegeReference>
+		<AxSecurityPrivilegeReference>
+			<Name>ICS_ExpenseVendInvoiceExpenseApproval</Name>
+		</AxSecurityPrivilegeReference>
+		<AxSecurityPrivilegeReference>
+			<Name>ICS_ExpenseVendInvoiceLineSplit</Name>
+		</AxSecurityPrivilegeReference>
+	</Privileges>
+</AxSecurityDuty>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxClass xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseVendInvoiceDimSyncController</Name>
+	<SourceCode>
+		<Declaration><![CDATA[
+/// <summary>
+/// Expense vend invoice default dimension synchronize controller.
+/// </summary>
+public class ICS_ExpenseVendInvoiceDimSyncController extends SysOperationServiceController
+{
+}
+]]></Declaration>
+		<Methods>
+			<Method>
+				<Name>new</Name>
+				<Source><![CDATA[
+    protected void new ()
+    {
+        super(classStr(ICS_ExpenseVendInvoiceDimSyncService), methodStr(ICS_ExpenseVendInvoiceDimSyncService, process), SysOperationExecutionMode::Synchronous);
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>main</Name>
+				<Source><![CDATA[
+    public static void main(Args _args)
+    {
+        ICS_ExpenseVendInvoiceDimSyncController controller = new ICS_ExpenseVendInvoiceDimSyncController();
+        
+        controller.parmDialogCaption("@ICS:ExpenseVendInvoiceDimSync");
+        controller.startOperation();
+    }
+
+]]></Source>
+			</Method>
+		</Methods>
+	</SourceCode>
+</AxClass>

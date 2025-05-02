@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxEnum xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseFlowType</Name>
+	<Help>@ICS:FlowTypeHelpText</Help>
+	<Label>@ICS:FlowType</Label>
+	<EnumValues>
+		<AxEnumValue>
+			<Name>DDT</Name>
+			<Label>@ICS:DDT</Label>
+		</AxEnumValue>
+		<AxEnumValue>
+			<Name>Ordine</Name>
+			<Label>@ICS:Ordine</Label>
+			<Value>1</Value>
+		</AxEnumValue>
+		<AxEnumValue>
+			<Name>Approvazione</Name>
+			<Label>@ICS:Approvazione</Label>
+			<Value>2</Value>
+		</AxEnumValue>
+		<AxEnumValue>
+			<Name>Removed</Name>
+			<Label>Removed</Label>
+			<Value>3</Value>
+		</AxEnumValue>
+		<AxEnumValue>
+			<Name>Suspended</Name>
+			<Label>@ICS:FlowTypeSuspended</Label>
+			<Value>4</Value>
+		</AxEnumValue>
+	</EnumValues>
+</AxEnum>

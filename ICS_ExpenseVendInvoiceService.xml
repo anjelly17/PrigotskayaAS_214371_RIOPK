@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxClass xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseVendInvoiceService</Name>
+	<SourceCode>
+		<Declaration><![CDATA[
+using Microsoft.DynamicsOnline.Infrastructure.Components.SharedServiceUnitStorage;
+/// <summary>
+/// Expense vendor invoice service
+/// </summary>
+public class ICS_ExpenseVendInvoiceService
+{
+}
+]]></Declaration>
+		<Methods>
+			<Method>
+				<Name>create</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Create
+    /// </summary>
+    /// <param name = "_request"> <c>ICS_ExpenseVendInvoiceRequest</c> instance.</param>
+    /// <returns> <c>ICS_ExpenseVendInvoiceResponse</c> instance.</returns>
+    public ICS_ExpenseVendInvoiceResponse create(ICS_ExpenseVendInvoiceRequest _request)
+    {
+        ICS_ExpenseVendInvoiceResponse  response;
+        System.Exception ex;
+
+        response = new ICS_ExpenseVendInvoiceResponse();
+
+        try
+        {
+            this.createInvoice(_request);
+
+            response.parmSuccess(true);
+        }
+        catch(ex)
+        {
+            response.parmSuccess(false);
+            response.parmErrorMessage(ex.Message);
+        }
+
+        return response;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>update</Name>
+				<Source><![CDATA[
+    public ICS_ExpenseVendInvoiceResponse update(ICS_ExpenseVendInvoiceRequest _request)
+    {
+        ICS_ExpenseVendInvoiceResponse  response;
+        System.Exception ex;
+
+        response = this.validateUpdate(_request);
+
+        try
+        {
+            if (response.parmSuccess())
+            {
+                ttsbegin;
+                this.updateInvoice(_request);
+                ttscommit;
+            }
+        }
+        catch(ex)
+        {
+            response.parmSuccess(false);
+            response.parmErrorMessage(ex.Message);
+        }
+
+        return response;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>validateUpdate</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Validate update
+    /// </summary>
+    /// <param name = "_request"> <c>ICS_ExpenseVendInvoiceRequest</c> instance.</param>
+    /// <returns> <c>ICS_ExpenseVendInvoiceResponse</c> instance.</returns>
+    protected ICS_ExpenseVendInvoiceResponse validateUpdate(ICS_ExpenseVendInvoiceRequest _request)
+    {
+        ICS_ExpenseVendInvoiceResponse  response = new ICS_ExpenseVendInvoiceResponse();
+        response.parmSuccess(true);
+
+        if (_request.parmInvoiceRecId() == 0)
+        {
+            response.parmSuccess(false); 
+        }
+
+        if (response.parmSuccess() && !ICS_ExpenseVendInvoice::exist(_request.parmInvoiceRecId()))
+        {
+            response.parmSuccess(false);
+        }
+
+        if (!response.parmSuccess())
+        {
+            response.parmErrorMessage("@ICS:ValidationFailed");
+        }
+
+        return response;
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>updateInvoice</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Update invoice
+    /// </summary>
+    /// <param name = "_request"> <c>ICS_ExpenseVendInvoiceRequest</c> instance.</param>
+    protected void updateInvoice(ICS_ExpenseVendInvoiceRequest _request)
+    {
+        boolean                 newAttachment       = false;
+        ICS_ExpenseVendInvoice  expenseVendInvoice  = ICS_ExpenseVendInvoice::findByRecId(_request.parmInvoiceRecId(), true);
+
+        expenseVendInvoice.initFromExpenseRequest(_request, false);
+
+        if (expenseVendInvoice.SuppAcc != expenseVendInvoice.orig().SuppAcc)
+        {
+            expenseVendInvoice.MainContactWorker = VendTable::find(expenseVendInvoice.SuppAcc).MainContactWorker;
+        }
+
+        if (_request.parmPathPDF() && _request.parmPathPDF() != expenseVendInvoice.PathPDF )
+        {
+            newAttachment = true;
+        }
+
+        if (!expenseVendInvoice.validateWrite())
+        {
+            throw error("@SYS21628");
+        }
+
+        expenseVendInvoice.update();
+
+        if (newAttachment)
+        {
+            ICS_VendAttachmentHelper::attachPDFFile(expenseVendInvoice, expenseVendInvoice.PathPDF);
+        }
+
+        this.updateInvoiceLine(expenseVendInvoice, _request);
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>createInvoice</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Create invoice
+    /// </summary>
+    /// <param name = "_request"> <c>ICS_ExpenseVendInvoiceRequest</c> instance.</param>
+    protected void createInvoice(ICS_ExpenseVendInvoiceRequest _request)
+    {
+        ICS_ExpenseVendInvoice  expenseVendInvoice;
+
+        expenseVendInvoice.clear();
+        expenseVendInvoice.OffsetAccountType  = LedgerJournalACType::Ledger;
+        expenseVendInvoice.Source             = ICS_ExpenseVendInvoiceSource::APIService;
+        expenseVendInvoice.SyncStatus         = ICS_ExpenseVendInvoiceSyncStatus::Synchronized;
+        expenseVendInvoice.initFromExpenseRequest(_request);
+
+        if (expenseVendInvoice.SuppAcc)
+        {
+            VendTable vendTable = VendTable::find(expenseVendInvoice.SuppAcc);
+
+            expenseVendInvoice.MainContactWorker    = vendTable.MainContactWorker;
+            expenseVendInvoice.LedgerJournalNameId  = VendGroup::find(vendTable.VendGroup).ICS_ExpenseLedgerJournalNameId;
+        }
+
+        expenseVendInvoice.FlowType = ICS_ExpenseFlowType::Approvazione;
+
+        expenseVendInvoice.insert();
+        
+        if (expenseVendInvoice.FTP_Barcode  == nullValueBaseType(Types::String)
+         && expenseVendInvoice.InvoiceSDI   == NoYes::No)
+        {
+            ttsbegin;
+            expenseVendInvoice.initFTP_BarcodeValue();
+
+            expenseVendInvoice.update();
+            ttscommit;
+        }
+
+        ICS_VendAttachmentHelper::attachPDFFile(expenseVendInvoice, expenseVendInvoice.PathPDF);
+
+        this.createInvoiceLine(expenseVendInvoice, _request);
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>createInvoiceLine</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Create invoice line
+    /// </summary>
+    /// <param name = "_expenseVendInvoice">The <c>ICS_ExpenseVendInvoice</c> buffer.</param>
+    /// <param name = "_request">The <c>ICS_ExpenseVendInvoiceRequest</c> buffer.</param>
+    protected void createInvoiceLine(ICS_ExpenseVendInvoice  _expenseVendInvoice, ICS_ExpenseVendInvoiceRequest _request)
+    {
+        ICS_ExpenseVendInvoiceLine invoiceLine;
+
+        invoiceLine.clear();
+        invoiceLine.ExpenseVendInvoice = _expenseVendInvoice.RecId;
+        invoiceLine.initFromExpenseRequest(_request);
+        invoiceLine.initDefaultDimensions(_expenseVendInvoice.MainContactWorker);
+
+        if (!invoiceLine.validateWrite())
+        {
+            throw error("@SYS21628");
+        }
+
+        invoiceLine.insert();
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>updateInvoiceLine</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Update invoice line
+    /// </summary>
+    /// <param name = "_expenseVendInvoice">The <c>ICS_ExpenseVendInvoice</c> buffer.</param>
+    /// <param name = "_request">The <c>ICS_ExpenseVendInvoiceRequest</c> buffer.</param>
+    protected void updateInvoiceLine(ICS_ExpenseVendInvoice  _expenseVendInvoice, ICS_ExpenseVendInvoiceRequest _request)
+    {
+        ICS_ExpenseVendInvoiceLine invoiceLine;
+        
+        select firstonly forupdate invoiceLine
+            where invoiceLine.ExpenseVendInvoice == _expenseVendInvoice.RecId;
+        
+        if (invoiceLine.RecId)
+        {
+            invoiceLine.initFromExpenseRequest(_request, false);
+
+            if (!invoiceLine.validateWrite())
+            {
+                throw error("@SYS21628");
+            }
+
+            invoiceLine.update();
+        }     
+    }
+
+]]></Source>
+			</Method>
+		</Methods>
+	</SourceCode>
+</AxClass>

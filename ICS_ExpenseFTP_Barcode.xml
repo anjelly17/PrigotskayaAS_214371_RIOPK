@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxEdt xmlns:i="http://www.w3.org/2001/XMLSchema-instance" xmlns=""
+	i:type="AxEdtString">
+	<Name>ICS_ExpenseFTP_Barcode</Name>
+	<Extends>BarCodeString</Extends>
+	<HelpText>@ICS:UniqueInvoiceIdHelpTxt</HelpText>
+	<Label>@ICS:UniqueInvoiceId</Label>
+	<ArrayElements />
+	<Relations />
+	<TableReferences />
+</AxEdt>

@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AxClass xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+	<Name>ICS_ExpenseVendInvoiceLedgerJournalGeneratePostController</Name>
+	<SourceCode>
+		<Declaration><![CDATA[
+/// <summary>
+/// General ledger journal generator controller.
+/// </summary>
+public class ICS_ExpenseVendInvoiceLedgerJournalGeneratePostController extends SysOperationServiceController
+{
+}
+]]></Declaration>
+		<Methods>
+			<Method>
+				<Name>main</Name>
+				<Source><![CDATA[
+    public static void main(Args _args)
+    {
+        IdentifierName className;
+        IdentifierName methodName;
+        SysOperationExecutionMode executionMode;
+
+        try
+        {
+            [className, methodName, executionMode] = SysOperationServiceController::parseServiceInfo(_args);
+            ICS_ExpenseVendInvoiceLedgerJournalGeneratePostController controller = new ICS_ExpenseVendInvoiceLedgerJournalGeneratePostController(className, methodName, executionMode);
+
+            controller.parmLoadFromSysLastValue(false);
+            controller.parmArgs(_args);            
+            controller.showBatchTab(false);
+            controller.initParmRecord(_args);
+            controller.initPersonName();
+
+            if (methodName == methodStr(ICS_ExpenseVendInvoiceLedgerJournalGeneratePostService, journalPost))
+            {
+                controller.parmShowDialog(false);
+            }
+
+            controller.startOperation();
+        }
+        catch (Exception::Error)
+        {
+            exceptionTextFallThrough();
+        }
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>initParmRecord</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Initialize parameters.
+    /// </summary>
+    /// <param name = "_args"> Arguments.</param>
+    public void initParmRecord(Args _args)
+    {
+        if (_args.record()
+         && _args.dataset() == tableNum(ICS_ExpenseVendInvoice))
+        {
+            ICS_ExpenseVendInvoiceLedgerJournalGeneratePostContract contract = this.getDataContractObject();
+            contract.parmVendInvoiceRecId(_args.record().RecId);
+        }
+    }
+
+]]></Source>
+			</Method>
+			<Method>
+				<Name>initPersonName</Name>
+				<Source><![CDATA[
+    /// <summary>
+    /// Initialize person name.
+    /// </summary>
+    public void initPersonName()
+    {
+        PartyIProvider partyProvider = PartyProviderFactory::getPartyProvider();
+
+        if (partyProvider)
+        {
+            ICS_ExpenseVendInvoiceLedgerJournalGeneratePostContract contract = this.getDataContractObject();
+            DirPerson dirPerson = partyProvider.findDirPersonByUserId(curUserId());
+            contract.parmPersonName(dirPerson.Name);
+            contract.parmDirPersonRecId(dirPerson.RecId);
+        }
+    }
+
+]]></Source>
+			</Method>
+		</Methods>
+	</SourceCode>
+</AxClass>
